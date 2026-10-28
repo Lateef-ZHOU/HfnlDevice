@@ -1,5 +1,7 @@
 # HfnlDevice
 
+2026-10-28 连接显示整理（用户定）：连接区补充只读“设备端点 ↔ 本机端点”，直接读取 C++ 固定配置，不显示 MAC、不增加表单状态。
+
 2026-10-28 用户定：连接区只选择网卡，`open(interfaceIndex)` 使用 HfnlConfig 固定参数：本机 `192.168.0.3:8080`，设备 `192.168.0.2:8080`，设备 MAC `00:11:22:33:44:55`。QML 不再保存或编辑 IP、端口与 MAC；Handle 仍持本次连接快照并负责重连，固定 MAC 沿用直接发送 UDP 的路径。
 
 本轮 Windows Qt 6.11.2 Release、qmllint 及既有页面冒烟 1/1 通过，无编译/QML 警告；证据为 `build/build-fixed-connection.log`、`build/test-fixed-connection.log`。未连接实物，不重复 Linux/协议全套，仅本地提交。
@@ -32,3 +34,5 @@ cmake --build build --config Release --target LidarHfnlDevice_qmllint
 MIT，Copyright (c) 2026 周涛（ZHOU TAO）。Qt、libserialport、libpcap/Npcap 等依赖各自授权，MIT 不替代这些许可；详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本仓库不包含第三方 SDK、运行库或驱动。
 
 CI：托管 Linux 自动验证；Windows 原生依赖使用预装 SDK/运行时的自托管入口，默认跳过不代表通过。本机 Windows 验证记录与主程序分仓记录一起保存。
+
+本轮本机验证（2026-10-28）：Windows Qt 6.11.2 Release 构建、CMake qmllint 和既有页面冒烟 1/1 通过；未连接实物。日志：build/build-connection-summary.log、build/test-connection-summary.log。
