@@ -46,7 +46,7 @@ namespace HfnlConfig {
     static constexpr int cdlSpecByte = elementByte * cdlSpecElement;
     static constexpr int allSpecByte = homSpecByte + cdlSpecByte;
 
-    // ── 网口连接默认值（作为 QML 官邸初值，连接时显式传入）──────────────
+    // 型号固定网络参数；用户只选择本机网卡，设备 MAC 显式提供。
     static constexpr auto hostIPv4 = "192.168.0.3";
     static constexpr int hostPort = 8080;
     static constexpr auto deviceIPv4 = "192.168.0.2";

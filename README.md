@@ -1,5 +1,9 @@
 # HfnlDevice
 
+2026-10-28 用户定：连接区只选择网卡，`open(interfaceIndex)` 使用 HfnlConfig 固定参数：本机 `192.168.0.3:8080`，设备 `192.168.0.2:8080`，设备 MAC `00:11:22:33:44:55`。QML 不再保存或编辑 IP、端口与 MAC；Handle 仍持本次连接快照并负责重连，固定 MAC 沿用直接发送 UDP 的路径。
+
+本轮 Windows Qt 6.11.2 Release、qmllint 及既有页面冒烟 1/1 通过，无编译/QML 警告；证据为 `build/build-fixed-connection.log`、`build/test-fixed-connection.log`。未连接实物，不重复 Linux/协议全套，仅本地提交。
+
 LiDAR 的独立官邸：具体 C++ 后端、Collector/协议/处理逻辑及其 QML 页面在同一仓库维护。来自 LiDAR_DataACQ master `5cc6d65`，本次分仓不改变运行行为。
 
 ## 边界与接入

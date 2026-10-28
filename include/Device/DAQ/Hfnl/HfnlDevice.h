@@ -95,11 +95,11 @@ private:
 // **动作对 QML 公开**：那两份 .qml 直接按名调这些槽
 // （按名绑定的耦合关在型号夹内部——QML 与官邸同作者、同目录、一起改）。
 public Q_SLOTS:
-    bool open(const int interfaceIndex, const QString &hostIP, const int hostPort,
-              const QString &deviceIP, const int devicePort, const QString &deviceMAC)
+    bool open(const int interfaceIndex)
     {
-        const auto params = PcapForm::parseParameters(this->device().logSource(), interfaceIndex, hostIP, hostPort, deviceIP, devicePort,
-            deviceMAC, DAQDevice::kPcapReadTimeout, DAQDevice::kPcapKernelBufferBytes);
+        const auto params = PcapForm::parseParameters(this->device().logSource(), interfaceIndex,
+            HfnlConfig::hostIPv4, HfnlConfig::hostPort, HfnlConfig::deviceIPv4, HfnlConfig::devicePort,
+            HfnlConfig::deviceMAC, DAQDevice::kPcapReadTimeout, DAQDevice::kPcapKernelBufferBytes);
         return params && this->device().open(*params);
     }
     void close() { this->device().close(); }
