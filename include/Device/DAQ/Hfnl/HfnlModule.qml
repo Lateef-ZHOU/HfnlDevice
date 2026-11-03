@@ -20,7 +20,7 @@ ModulePage {
     property int networkInterfaceIndex: internals.connectionParameters.networkInterfaceDefault
     mainPages: [
         Page {
-            title: qsTr("HOM 功率谱 3D")
+            title: qsTr("HOM·功率谱")
             contentItem: SurfaceView {
                 id: homSurface
                 specification: internals.chartParameters.homPlotConfiguration
@@ -31,7 +31,7 @@ ModulePage {
             }
         },
         Page {
-            title: qsTr("CDL 功率谱 3D")
+            title: qsTr("CDL·功率谱")
             contentItem: SurfaceView {
                 id: cdlSurface
                 specification: internals.chartParameters.cdlPlotConfiguration
@@ -42,7 +42,7 @@ ModulePage {
             }
         },
         Page {
-            title: qsTr("HOM 风速 | CNR")
+            title: qsTr("HOM·径向风")
             contentItem: Wind2DView {
                 id: homWind
                 specification: internals.chartParameters.homPlotConfiguration
@@ -54,7 +54,7 @@ ModulePage {
             }
         },
         Page {
-            title: qsTr("CDL 风速 | CNR")
+            title: qsTr("CDL·径向风")
             contentItem: Wind2DView {
                 id: cdlWind
                 specification: internals.chartParameters.cdlPlotConfiguration
@@ -66,7 +66,7 @@ ModulePage {
             }
         },
         Page {
-            title: qsTr("HOM 风羽图")
+            title: qsTr("HOM·风廓线")
             contentItem: WindBarbItem {
                 id: homBarb
                 readonly property var spec: internals.chartParameters.homPlotConfiguration
@@ -79,7 +79,7 @@ ModulePage {
             }
         },
         Page {
-            title: qsTr("CDL 风羽图")
+            title: qsTr("CDL·风廓线")
             contentItem: WindBarbItem {
                 id: cdlBarb
                 readonly property var spec: internals.chartParameters.cdlPlotConfiguration
