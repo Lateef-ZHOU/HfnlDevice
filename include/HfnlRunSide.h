@@ -6,7 +6,7 @@
 #include <QtEndian>
 #include <QtGlobal> // quint64（谱元素字节）/ qint64 + Q_INT64_C（3D 值域上界）
 
-#include "Device/DAQ/DAQCollector.h" // DAQCollector（族收集器基）
+#include "DAQCollector.h" // DAQCollector（族收集器基）
 
 // ============================================================
 // HfnlRunSide.h — 国实卡型号夹的**运行侧**：常量店 + 收集器。

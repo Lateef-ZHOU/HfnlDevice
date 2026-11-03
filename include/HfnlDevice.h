@@ -1,18 +1,18 @@
 #pragma once
-#include "Device/DAQ/Hfnl/HfnlProcessing.h"
+#include "HfnlProcessing.h"
 #include <QDateTime>
 #include <QtQml/qqmlregistration.h>
-#include "UI/Chart/DAQChartSpecification.h"
-#include "Acquisition/AcqSaver.h"
-#include "Algorithm/Wind/VerticalWindProfile.h"
+#include "DAQChartSpecification.h"
+#include "AcqSaver.h"
+#include "VerticalWindProfile.h"
 #include <memory>
 #include <QString>
 #include <QUrl>
 #include <QVariantMap>
 
-#include "Device/DAQ/DAQDevice.h"                  // 采集卡族两层（族基 DAQDeviceBase + 族层 DAQDevice）
-#include "Device/PcapForm.h"
-#include "Device/DAQ/Hfnl/HfnlRunSide.h"        // 运行侧：常量 + 收集器
+#include "DAQDevice.h"                  // 采集卡族两层（族基 DAQDeviceBase + 族层 DAQDevice）
+#include "PcapForm.h"
+#include "HfnlRunSide.h"        // 运行侧：常量 + 收集器
 
 // 国实官邸：组装型号命令与页面参数，并在 run 中创建双通道处理闭包。
 // 结果直接发本对象信号；处理状态归闭包，图表与可编辑设置归 QML。
