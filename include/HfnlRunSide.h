@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <algorithm>
 #include <QByteArray>
 #include <QList>
@@ -129,8 +130,9 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
     explicit HfnlCollector(const int accumSec, DAQContext context)
         : DAQCollector(std::move(context)), accumSec_(std::clamp(accumSec, HfnlConfig::accumMin, HfnlConfig::accumMax)) {}
 
-    void onFeed(const QByteArray &raw, const RxTime at) override
+    void onFeed(const std::optional<QByteArray> &item, const RxTime at) override
     {
+        const auto &raw = *item;
         constexpr int total = HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement;
         // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素，也不部分接收超长包。
         if (raw.isEmpty() || raw.size() % HfnlConfig::elementByte != 0
