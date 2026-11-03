@@ -1,10 +1,13 @@
 # HfnlDevice
 
+2026-11-03 用户定：网口连接区仅保留网卡选择和连接/断开，删除 IP、端口等固定参数展示及对应 QML 参数字段；实际连接配置、校验、ARP 和收发关闭行为保持。
+
+Windows 验证：通过主程序本地源码覆盖增量构建，五个网口官邸 qmllint 目标成功；仍有 QObject 属性类型的既有静态提示。八秒离屏冒烟通过，仅既有字体提示；未进行硬件操作或 Linux 验证。证据：LiDAR_DataACQ/build/build-network-ui.log、smoke-network-ui.json。
+
 2026-11-03 上传接口：官邸仍拥有唯一具体 Core；Core 继承 `Device<HandleT, CollectorT>`，Device 直接继承 Handle 并重写 onData。Core 只提供 Qt 属性、锁信号与末端预析构；不增设上传回调、状态缓存或逐包信号转发。协议、Collector 与 UI 逻辑保持。
 
 采集图窗统一使用 `HOM·功率谱`、`CDL·功率谱`、`HOM·径向风`、`CDL·径向风`、`HOM·风廓线`、`CDL·风廓线`；径向风页继续包含风速和 CNR。仅调整显示名称，页面顺序、历史与处理/保存接口保持。
 
-2026-10-28 连接显示整理（用户定）：连接区补充只读“设备端点 ↔ 本机端点”，直接读取 C++ 固定配置，不显示 MAC、不增加表单状态。
 
 2026-10-28 用户定：连接区只选择网卡，`open(interfaceIndex)` 使用 HfnlConfig 固定参数：本机 `192.168.0.3:8080`，设备 `192.168.0.2:8080`，设备 MAC `00:11:22:33:44:55`。QML 不再保存或编辑 IP、端口与 MAC；Handle 仍持本次连接快照并负责重连，固定 MAC 沿用直接发送 UDP 的路径。
 

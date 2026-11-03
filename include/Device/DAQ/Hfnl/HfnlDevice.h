@@ -55,8 +55,7 @@ public:
     static HfnlDevice *qmlAttachedProperties(QObject *owner) { return new HfnlDevice(owner); }
     [[nodiscard]] QVariantMap connectionParameters() const
     {
-        return PcapForm::connectionParameters(HfnlConfig::hostIPv4, HfnlConfig::hostPort,
-                                                HfnlConfig::deviceIPv4, HfnlConfig::devicePort, HfnlConfig::deviceMAC);
+        return PcapForm::connectionParameters();
     }
 
     // 图表规格从 HfnlConfig 取得，QML 据此装配；绘图器不认识设备型号。
