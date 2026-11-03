@@ -22,7 +22,6 @@ class HfnlCore final : public Device<PcapHandle, HfnlCollector>
     Q_OBJECT
     Q_PROPERTY(QString displayName READ displayName CONSTANT)
     Q_PROPERTY(QString subtitle READ subtitle CONSTANT)
-    Q_PROPERTY(QObject *logSource READ logSourceObject CONSTANT)
     Q_PROPERTY(bool isOpen READ isOpen)
     Q_PROPERTY(bool isLocked READ isLocked)
     Q_PROPERTY(QString holder READ holder)
@@ -115,7 +114,7 @@ private:
 public Q_SLOTS:
     bool open(const int interfaceIndex)
     {
-        const auto params = PcapForm::parseParameters(this->device().logSource(), interfaceIndex,
+        const auto params = PcapForm::parseParameters(this->device(), interfaceIndex,
             HfnlConfig::hostIPv4, HfnlConfig::hostPort, HfnlConfig::deviceIPv4, HfnlConfig::devicePort,
             HfnlConfig::deviceMAC, DAQDevice::kPcapReadTimeout, DAQDevice::kPcapKernelBufferBytes);
         return params && this->device().open(*params);
