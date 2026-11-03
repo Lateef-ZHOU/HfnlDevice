@@ -1,5 +1,7 @@
 # HfnlDevice
 
+2026-11-03 上传接口：官邸仍拥有唯一具体 Core；Core 继承 `Device<HandleT, CollectorT>`，Device 直接继承 Handle 并重写 onData。Core 只提供 Qt 属性、锁信号与末端预析构；不增设上传回调、状态缓存或逐包信号转发。协议、Collector 与 UI 逻辑保持。
+
 采集图窗统一使用 `HOM·功率谱`、`CDL·功率谱`、`HOM·径向风`、`CDL·径向风`、`HOM·风廓线`、`CDL·风廓线`；径向风页继续包含风速和 CNR。仅调整显示名称，页面顺序、历史与处理/保存接口保持。
 
 2026-10-28 连接显示整理（用户定）：连接区补充只读“设备端点 ↔ 本机端点”，直接读取 C++ 固定配置，不显示 MAC、不增加表单状态。
@@ -42,3 +44,6 @@ CI：托管 Linux 自动验证；Windows 原生依赖使用预装 SDK/运行时�
 ## 资源阶段通知（2026-11-02）
 
 连接采用 HandleCore 的 `connectionChanged(ResourcePhase)`；主动关闭前在所属线程同步发 `AboutToRelease`，完成事件用于回读现状。页面借出已有 `deviceState` 机制对象，不再保存 isOpen/isLocked/holder 的 QML 转交属性；标签通过连接/锁完成阶段回读，不恢复通用 statusChanged。固定依赖已同步；本轮提交尚未推送，验证使用显式本地源码覆盖。
+
+
+2026-11-03 验证：Windows Qt 6.11.2 主程序 Release 编译、15 组 QML 检查、跨官邸生命周期和三任务回归 7/7 通过。接口联调使用相邻源码覆盖，新依赖固定为本地提交，尚未推送；未连接实物设备或更新板卡。

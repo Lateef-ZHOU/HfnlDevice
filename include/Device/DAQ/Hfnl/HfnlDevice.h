@@ -16,11 +16,30 @@
 
 // 国实官邸：组装型号命令与页面参数，并在 run 中创建双通道处理闭包。
 // 结果直接发本对象信号；处理状态归闭包，图表与可编辑设置归 QML。
+// Qt 元对象末端：Handle 与 Device 共用一个 QObject；析构先等上传退出。
+class HfnlCore final : public Device<PcapHandle, HfnlCollector>
+{
+    Q_OBJECT
+    Q_PROPERTY(QString displayName READ displayName CONSTANT)
+    Q_PROPERTY(QString subtitle READ subtitle CONSTANT)
+    Q_PROPERTY(QObject *logSource READ logSourceObject CONSTANT)
+    Q_PROPERTY(bool isOpen READ isOpen)
+    Q_PROPERTY(bool isLocked READ isLocked)
+    Q_PROPERTY(QString holder READ holder)
+public:
+    using Device::Device;
+    ~HfnlCore() override { PreDestruction(); }
+Q_SIGNALS:
+    void lockChanged(HandleCore::ResourcePhase phase) override;
+private:
+    void PreDestruction() noexcept final { Device::PreDestruction(); }
+};
+
 class HfnlDevice final
 #ifdef Q_MOC_RUN
     : public DAQDeviceBase // 模板层继承的族级元对象。
 #else
-    : public DAQDevice<PcapHandle, HfnlCollector>
+    : public DAQDevice<HfnlCore>
 #endif
 {
     Q_OBJECT
