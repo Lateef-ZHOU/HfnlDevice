@@ -58,7 +58,7 @@ public:
 
     // 图表规格从 HfnlConfig 取得，QML 据此装配；绘图器不认识设备型号。
     explicit HfnlDevice(QObject *parent)
-        : DAQDevice(QStringLiteral("国实采集卡"), QStringLiteral("网口 · UDP · HOM|CDL"), parent)
+        : DAQDevice(QStringLiteral("采集·国实双光子"), QStringLiteral("HOM/CDL"), parent)
     {
         setObjectName(QStringLiteral("Hfnl")); // ASCII 标识：落盘会话目录名用
 
