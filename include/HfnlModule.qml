@@ -26,7 +26,9 @@ ModulePage {
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onHomSpecReady(values) { homSurface.updateSpectrum(values) }
+                    function onHomSpecReady(values) {
+                        homSurface.updateSpectrum(values);
+                    }
                 }
             }
         },
@@ -37,7 +39,9 @@ ModulePage {
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onCdlSpecReady(values) { cdlSurface.updateSpectrum(values) }
+                    function onCdlSpecReady(values) {
+                        cdlSurface.updateSpectrum(values);
+                    }
                 }
             }
         },
@@ -48,8 +52,12 @@ ModulePage {
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onHomWSReady(values) { homWind.updateWS(values) }
-                    function onHomCNRReady(values) { homWind.updateCNR(values) }
+                    function onHomWSReady(values) {
+                        homWind.updateWS(values);
+                    }
+                    function onHomCNRReady(values) {
+                        homWind.updateCNR(values);
+                    }
                 }
             }
         },
@@ -60,8 +68,12 @@ ModulePage {
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onCdlWSReady(values) { cdlWind.updateWS(values) }
-                    function onCdlCNRReady(values) { cdlWind.updateCNR(values) }
+                    function onCdlWSReady(values) {
+                        cdlWind.updateWS(values);
+                    }
+                    function onCdlCNRReady(values) {
+                        cdlWind.updateCNR(values);
+                    }
                 }
             }
         },
@@ -70,11 +82,17 @@ ModulePage {
             contentItem: WindBarbItem {
                 id: homBarb
                 readonly property var spec: internals.chartParameters.homPlotConfiguration
-                configuration: ({ heightBins: spec.rows, maxHeight: spec.rows * spec.gateSpacing,
-                    windowSeconds: spec.barbWindow, columnSeconds: spec.barbColumn })
+                configuration: ({
+                        heightBins: spec.rows,
+                        maxHeight: spec.rows * spec.gateSpacing,
+                        windowSeconds: spec.barbWindow,
+                        columnSeconds: spec.barbColumn
+                    })
                 Connections {
                     target: internals.device
-                    function onHomProfileReady(profile) { homBarb.appendColumn(profile) }
+                    function onHomProfileReady(profile) {
+                        homBarb.appendColumn(profile);
+                    }
                 }
             }
         },
@@ -83,36 +101,43 @@ ModulePage {
             contentItem: WindBarbItem {
                 id: cdlBarb
                 readonly property var spec: internals.chartParameters.cdlPlotConfiguration
-                configuration: ({ heightBins: spec.rows, maxHeight: spec.rows * spec.gateSpacing,
-                    windowSeconds: spec.barbWindow, columnSeconds: spec.barbColumn })
+                configuration: ({
+                        heightBins: spec.rows,
+                        maxHeight: spec.rows * spec.gateSpacing,
+                        windowSeconds: spec.barbWindow,
+                        columnSeconds: spec.barbColumn
+                    })
                 Connections {
                     target: internals.device
-                    function onCdlProfileReady(profile) { cdlBarb.appendColumn(profile) }
+                    function onCdlProfileReady(profile) {
+                        cdlBarb.appendColumn(profile);
+                    }
                 }
             }
         }
     ]
-    readonly property Section connectionSection: Section {
+    readonly property Section connectionSection: ConnectionSection {
         title: qsTr("设备连接")
-        FieldRow {
-            label: qsTr("网卡")
-            ChoiceField {
-                Layout.fillWidth: true
-                model: internals.connectionParameters.networkInterfaceOptions
-                tips: internals.connectionParameters.networkInterfaceTips
-                value: root.networkInterfaceIndex
-                onCommitted: i => root.networkInterfaceIndex = i
+
+        label: qsTr("网卡")
+        ChoiceField {
+            Layout.fillWidth: true
+            model: internals.connectionParameters.networkInterfaceOptions
+            tips: internals.connectionParameters.networkInterfaceTips
+            value: root.networkInterfaceIndex
+            onCommitted: i => root.networkInterfaceIndex = i
+        }
+
+        firstAction: Action {
+            text: qsTr("连接")
+            onTriggered: {
+                if (internals.device.open(root.networkInterfaceIndex))
+                    root.logMessage(qsTr("连接请求已提交"));
             }
         }
-        DoubleButtonRow {
-            firstAction: Action {
-                text: qsTr("连接")
-                onTriggered: {
-                    if (internals.device.open(root.networkInterfaceIndex))
-                        root.logMessage(qsTr("连接请求已提交"))
-                }
-            }
-            secondAction: Action { text: qsTr("断开"); onTriggered: internals.device.close() }
+        secondAction: Action {
+            text: qsTr("断开")
+            onTriggered: internals.device.close()
         }
     }
     acquisitionParameters: internals.device.acquisitionParameters
@@ -126,7 +151,6 @@ ModulePage {
     // 借用公共只读资源接口，不暴露具体型号后端或缓存状态。
     readonly property var deviceState: internals.device.device
 
-
     QtObject {
         id: internals
         readonly property var chartParameters: device.chartParameters()
@@ -135,6 +159,8 @@ ModulePage {
     }
     Connections {
         target: internals.device.device
-        function onLogMessage(text): void { root.logMessage(text) }
+        function onLogMessage(text): void {
+            root.logMessage(text);
+        }
     }
 }
