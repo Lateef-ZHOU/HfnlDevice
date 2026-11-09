@@ -70,16 +70,20 @@ namespace HfnlConfig {
     static constexpr int plt2dWsMax = 60;
 } // namespace HfnlConfig
 
-// 两路通道 HOM（下标 0）、CDL（下标 1）；只读原型不分配谱数组，makeSelf 为运行实例备齐两路 double，
-// 收包线程直接解码，收齐末包即按族标准方法处理。
+// 两路通道 HOM（下标 0）、CDL（下标 1）；工厂为每次尝试备齐两路 double，收包线程直接解码，
+// 收齐末包即按族标准方法处理。
 // makeSelf 只读不可变参数与上下文，与收包写数组互不干涉。
 // 每次启动发送一份 HOM/CDL 数据后硬件停止发送；缺包使本次无法收齐，由看门狗重新发起采集。
 class HfnlCollector final : public DAQCollector
 {
 public:
-    [[nodiscard]] static std::shared_ptr<const HfnlCollector> createPrototype(const int accumSec, DAQContext context = {})
+    // 族模板层按请求参数造完整实例并备齐两路 double 收集区，收包线程直接解码。
+    [[nodiscard]] static std::shared_ptr<HfnlCollector> create(const DAQParameters &parameters)
     {
-        return std::shared_ptr<const HfnlCollector>(new const HfnlCollector(accumSec, std::move(context)));
+        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(parameters.accumSec, parameters.context));
+        (*next)[0].spectrum.resize(HfnlConfig::homSpecElement);
+        (*next)[1].spectrum.resize(HfnlConfig::cdlSpecElement);
+        return next;
     }
 
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
@@ -92,13 +96,7 @@ public:
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
     [[nodiscard]] int timeoutMs() const override { return (accumSec() + 2) * 1000; }
     // 同参数、独立且已分配的初始收集区；只读取原对象的不可变配置。
-    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const
-    {
-        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(accumSec(), context()));
-        (*next)[0].spectrum.resize(HfnlConfig::homSpecElement);
-        (*next)[1].spectrum.resize(HfnlConfig::cdlSpecElement);
-        return next;
-    }
+    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return create({accumSec(), context()}); }
 
     // 可变点：吃一口料；收齐两路全部元素即 complete（族基按通道串行算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
