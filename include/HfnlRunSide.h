@@ -19,7 +19,7 @@
 //
 // **为什么这两样在一起**：常量（判齐阈值 / 谱维度 / 采集参数量程）正是收集器的取材处。
 // 收集器和协议常量供官邸与处理工厂共同使用；本文件不反向包含二者。
-// 算法与落盘依赖留在 HfnlProcessing，图表由 QML 创建并接线。
+// 处理、落盘与风廓线由族层按通道规格完成，图表由 QML 创建并接线。
 // 本文件对下只依赖 DAQCollector.h / Qt，是型号夹里的叶子。
 // ============================================================
 namespace HfnlConfig {
@@ -33,11 +33,11 @@ namespace HfnlConfig {
     static constexpr int homSpecElementIndex = 0;
     static constexpr int cdlSpecElementIndex = homSpecElementIndex + homSpecElement;
 
-    // ── 物理换算（频率 → 风速、距离门 → 距离）────────────────────
-    static constexpr double homFreq2WsSlope = 500. / 1024. * 1.55 / 2.;
-    static constexpr double cdlFreq2WsSlope = 500. / 512. * 1.55 / 2.;
-    static constexpr double homFreq2WsIntercept = -homSpecFreq * homFreq2WsSlope / 2.;
-    static constexpr double cdlFreq2WsIntercept = -cdlSpecFreq * cdlFreq2WsSlope / 2.;
+    // ── 物理换算（频点 → 频率、距离门 → 距离）：500 MSPS，HOM 1024 点、CDL 512 点 FFT，波长 1.55 μm；
+    // 零风速在频带中心（第 freq/2 个频点）。────────────────────
+    static constexpr double homBinMHz = 500. / 1024.;
+    static constexpr double cdlBinMHz = 500. / 512.;
+    static constexpr double metersPerSecondPerMHz = 1.55 / 2.;
     static constexpr double homDBinDist = 150.;
     static constexpr double cdlDBinDist = 60.;
 
@@ -56,7 +56,7 @@ namespace HfnlConfig {
     // 读取政策（唤醒间隔 / 内核缓冲）不在这儿：那是族级常量，住 DAQDeviceBase::kPcap*（由本族的流量形状决定）。
 
     // ── 采集参数默认值/范围 ─────────────────────────────────────────────────
-    static constexpr int accumDefault = 1; // 累积时间（秒）——语义见 accumSec_ 注
+    static constexpr int accumDefault = 1; // 累积时间（秒）——语义见收集器 buildStart 注
     static constexpr int accumMin = 1;
     static constexpr int accumMax = 3600; // 范围待确认
 
@@ -70,13 +70,8 @@ namespace HfnlConfig {
     static constexpr int plt2dWsMax = 60;
 } // namespace HfnlConfig
 
-struct HfnlFrame
-{
-    QVector<double> hom;
-    QVector<double> cdl;
-};
-
-// 只读原型不分配谱数组；makeSelf 为运行实例备齐两路 double，收包线程直接解码。
+// 两路通道 HOM（下标 0）、CDL（下标 1）；只读原型不分配谱数组，makeSelf 为运行实例备齐两路 double，
+// 收包线程直接解码，收齐末包即按族标准方法处理。
 // makeSelf 只读不可变参数与上下文，与收包写数组互不干涉。
 // 每次启动发送一份 HOM/CDL 数据后硬件停止发送；缺包使本次无法收齐，由看门狗重新发起采集。
 class HfnlCollector final : public DAQCollector
@@ -87,34 +82,25 @@ public:
         return std::shared_ptr<const HfnlCollector>(new const HfnlCollector(accumSec, std::move(context)));
     }
 
-    // 仅完整帧可读；引用随 Collector 存活，按值复制其中数组仍是隐式共享。
-    [[nodiscard]] const HfnlFrame &constFrame() const
-    {
-        static const HfnlFrame empty;
-        return settled() ? frame_ : empty;
-    }
-
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
     // 启动命令：p0/p1 固定双包，现与参数无关。看门狗换斗重发即再发本双包。
-    // **[预留] 累积时间本该编在这里**：accumSec_ 的语义是"卡累积这么久再吐一张谱"，那是
+    // **[预留] 累积时间本该编在这里**：accumSec() 的语义是"卡累积这么久再吐一张谱"，那是
     // 启动这次采集的参数。目前卡没实现这个功能（是采集卡落后于我们），故本口暂时不吃它，
     // 它眼下只兑现了 timeoutMs 那一半用途。卡跟上之后改的是 acqCommands，本口签名不变。
     [[nodiscard]] QList<QByteArray> buildStart() const override { return acqCommands(); }
     // 单次数据发送完毕后硬件自动停止；buildStop 沿用基类空表，当前没有额外的 abort 命令。
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
-    [[nodiscard]] int timeoutMs() const override { return (accumSec_ + 2) * 1000; }
+    [[nodiscard]] int timeoutMs() const override { return (accumSec() + 2) * 1000; }
     // 同参数、独立且已分配的初始收集区；只读取原对象的不可变配置。
     [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const
     {
-        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(accumSec_, context()));
-        next->frame_.hom.resize(HfnlConfig::homSpecElement);
-        next->frame_.cdl.resize(HfnlConfig::cdlSpecElement);
+        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(accumSec(), context()));
+        (*next)[0].spectrum.resize(HfnlConfig::homSpecElement);
+        (*next)[1].spectrum.resize(HfnlConfig::cdlSpecElement);
         return next;
     }
 
-    [[nodiscard]] bool settled() const override { return received_ == HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement; }
-
-    // 可变点：吃一口料。**齐没齐由 settled() 答，本口不答**（皮会再问一次）。
+    // 可变点：吃一口料；收齐两路全部元素即 complete（族基按通道串行算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
     // 两处都偏晚：
     //   · **偏在链路上**：现读的是"我们处理到这里"的时刻，把内核缓冲 / 定时唤醒 / 线程调度
@@ -128,7 +114,24 @@ public:
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
     explicit HfnlCollector(const int accumSec, DAQContext context)
-        : DAQCollector(std::move(context)), accumSec_(std::clamp(accumSec, HfnlConfig::accumMin, HfnlConfig::accumMax)) {}
+        : DAQCollector(std::move(context), std::clamp(accumSec, HfnlConfig::accumMin, HfnlConfig::accumMax),
+                       {channel(QStringLiteral("HOM"), HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq,
+                                HfnlConfig::homDBinDist, HfnlConfig::homBinMHz),
+                        channel(QStringLiteral("CDL"), HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq,
+                                HfnlConfig::cdlDBinDist, HfnlConfig::cdlBinMHz)}) {}
+
+    static DAQChannel channel(QString name, const int rows, const int columns, const double gateM, const double binMHz)
+    {
+        DAQChannel c;
+        c.name = std::move(name);
+        c.rows = rows;
+        c.columns = columns;
+        for (int gate = 0; gate < rows; ++gate) c.rangeM.append(gate * gateM);
+        for (int bin = 0; bin < columns; ++bin) c.freqMHz.append(bin * binMHz);
+        c.zeroWindMHz = columns / 2 * binMHz;
+        c.metersPerSecondPerMHz = HfnlConfig::metersPerSecondPerMHz;
+        return c;
+    }
 
     void onFeed(const std::optional<QByteArray> &item, const RxTime at) override
     {
@@ -145,7 +148,7 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         const char *const bytes = raw.constData();
         if (homCount > 0)
         {
-            double *const out = frame_.hom.data() + received_;
+            double *const out = (*this)[0].spectrum.data() + received_;
             for (int i = 0; i < homCount; ++i)
             {
                 const quint64 word = qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte);
@@ -157,11 +160,13 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         }
         if (homCount < n)
         {
-            double *const out = frame_.cdl.data() + (received_ + homCount - HfnlConfig::homSpecElement);
+            double *const out = (*this)[1].spectrum.data() + (received_ + homCount - HfnlConfig::homSpecElement);
             for (int i = homCount; i < n; ++i)
                 out[i - homCount] = static_cast<double>(qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte) & 0x3FFFFFFFFFFULL);
         }
         received_ += n;
+        if (received_ == total)
+            complete();
     }
 
 private:
@@ -179,11 +184,7 @@ private:
                 QByteArray::fromRawData(reinterpret_cast<const char *>(p1), sizeof p1)}; // 静态存储期，零拷贝视图安全
     }
 
-    // 当前只用于看门狗；硬件尚未接入累积时间命令，不能把此值视为已下发卡端。
-    const int accumSec_;
-
-    // ── 收集区（[仅收包线程] 可写）──
-    HfnlFrame frame_;
+    // 收集区就是两路通道的功率谱（[仅收包线程] 可写）。累积时间当前只用于看门狗，硬件尚未接入累积命令。
     int received_ = 0; // 全帧元素偏移，也是完成判据；可在单包内跨 HOM/CDL 分界。
 };
 

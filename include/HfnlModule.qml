@@ -10,7 +10,7 @@ import QtQuick.Layouts
 ModulePage {
     id: root
     readonly property string kind: "device"
-    readonly property DAQDeviceBase family: internals.device
+    readonly property QtObject family: internals.device // 采集卡族基不是 QObject，交出设备对象本身
     property var acquisitionParameters
     property int accum: acquisitionParameters.accumDefault
     property url saveDir: acquisitionParameters.saveDirDefault
@@ -26,8 +26,9 @@ ModulePage {
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onHomSpecReady(values) {
-                        homSurface.updateSpectrum(values);
+                    function onSpectrumReady(channel, values) {
+                        if (channel === 0)
+                            homSurface.updateSpectrum(values);
                     }
                 }
             }
@@ -39,8 +40,9 @@ ModulePage {
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onCdlSpecReady(values) {
-                        cdlSurface.updateSpectrum(values);
+                    function onSpectrumReady(channel, values) {
+                        if (channel === 1)
+                            cdlSurface.updateSpectrum(values);
                     }
                 }
             }
@@ -52,11 +54,11 @@ ModulePage {
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onHomWSReady(values) {
-                        homWind.updateWS(values);
-                    }
-                    function onHomCNRReady(values) {
-                        homWind.updateCNR(values);
+                    function onRadialReady(channel, ranges, speeds, cnr, calibrated) {
+                        if (channel !== 0)
+                            return;
+                        homWind.updateWS(speeds);
+                        homWind.updateCNR(cnr);
                     }
                 }
             }
@@ -68,11 +70,11 @@ ModulePage {
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onCdlWSReady(values) {
-                        cdlWind.updateWS(values);
-                    }
-                    function onCdlCNRReady(values) {
-                        cdlWind.updateCNR(values);
+                    function onRadialReady(channel, ranges, speeds, cnr, calibrated) {
+                        if (channel !== 1)
+                            return;
+                        cdlWind.updateWS(speeds);
+                        cdlWind.updateCNR(cnr);
                     }
                 }
             }
@@ -90,8 +92,9 @@ ModulePage {
                     })
                 Connections {
                     target: internals.device
-                    function onHomProfileReady(profile) {
-                        homBarb.appendColumn(profile);
+                    function onProfileReady(channel, profile) {
+                        if (channel === 0)
+                            homBarb.appendColumn(profile);
                     }
                 }
             }
@@ -109,8 +112,9 @@ ModulePage {
                     })
                 Connections {
                     target: internals.device
-                    function onCdlProfileReady(profile) {
-                        cdlBarb.appendColumn(profile);
+                    function onProfileReady(channel, profile) {
+                        if (channel === 1)
+                            cdlBarb.appendColumn(profile);
                     }
                 }
             }
@@ -146,10 +150,10 @@ ModulePage {
         acquisition: root
     }
     objectName: "HfnlModule"
-    readonly property string name: internals.device.device.displayName
-    readonly property string subtitle: internals.device.device.subtitle
-    // 借用公共只读资源接口，不暴露具体型号后端或缓存状态。
-    readonly property var deviceState: internals.device.device
+    readonly property string name: internals.device.displayName
+    readonly property string subtitle: internals.device.subtitle
+    // 借用公共只读资源接口（即设备对象本身），不另存状态。
+    readonly property var deviceState: internals.device
 
     QtObject {
         id: internals
@@ -158,7 +162,7 @@ ModulePage {
         readonly property HfnlDevice device: root.HfnlDevice
     }
     Connections {
-        target: internals.device.device
+        target: internals.device
         function onLogMessage(text): void {
             root.logMessage(text);
         }

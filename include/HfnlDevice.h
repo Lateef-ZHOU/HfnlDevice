@@ -1,5 +1,4 @@
 #pragma once
-#include "HfnlProcessing.h"
 #include <QDateTime>
 #include <QtQml/qqmlregistration.h>
 #include "DAQChartSpecification.h"
@@ -14,33 +13,20 @@
 #include "PcapForm.h"
 #include "HfnlRunSide.h"        // 运行侧：常量 + 收集器
 
-// 国实官邸：组装型号命令与页面参数，并在 run 中创建双通道处理闭包。
-// 结果直接发本对象信号；处理状态归闭包，图表与可编辑设置归 QML。
-// Qt 元对象末端：Handle 与 Device 共用一个 QObject；析构先等上传退出。
-class HfnlCore final : public Device<PcapHandle, HfnlCollector>
+// 国实官邸：组装型号命令与页面参数；两路通道的处理、落盘与风廓线由族层完成。
+// Qt 元对象末端：Handle、Device 与采集卡族共用这一个 QObject；析构首句先停收包再拆派生状态。
+class HfnlDevice final
+#ifdef Q_MOC_RUN
+    : public PcapHandle // 元对象基类：唯一 QObject 来自 Handle，模板层不加 Q_OBJECT。
+#else
+    : public DAQDevice<PcapHandle, HfnlCollector>
+#endif
 {
     Q_OBJECT
     Q_PROPERTY(QString displayName MEMBER displayName CONSTANT)
     Q_PROPERTY(QString subtitle MEMBER subtitle CONSTANT)
     Q_PROPERTY(bool isOpen READ isOpen)
     Q_PROPERTY(QVariant holder READ qmlHolder)
-public:
-    using Device::Device;
-    ~HfnlCore() override { PreDestruction(); }
-Q_SIGNALS:
-    void lockChanged(HandleCore::ResourcePhase phase) override;
-private:
-    void PreDestruction() noexcept final { Device::PreDestruction(); }
-};
-
-class HfnlDevice final
-#ifdef Q_MOC_RUN
-    : public DAQDeviceBase // 模板层继承的族级元对象。
-#else
-    : public DAQDevice<HfnlCore>
-#endif
-{
-    Q_OBJECT
     Q_PROPERTY(QVariantMap connectionParameters READ connectionParameters CONSTANT)
     QML_ELEMENT
     QML_ATTACHED(HfnlDevice)
@@ -61,8 +47,6 @@ public:
         : DAQDevice(QStringLiteral("采集·国实双光子"), QStringLiteral("HOM/CDL"), parent)
     {
         setObjectName(QStringLiteral("Hfnl")); // ASCII 标识：落盘会话目录名用
-
-        startProcessing();
     }
 
     ~HfnlDevice() override { PreDestruction(); }
@@ -82,15 +66,13 @@ public:
                  {"cdlPlotConfiguration", cdlPlotConfiguration}};
     }
 
+// 族信号按通道下标：0 = HOM，1 = CDL。
 Q_SIGNALS:
-    void homSpecReady(const QVector<double> &values);
-    void cdlSpecReady(const QVector<double> &values);
-    void homWSReady(const QVector<double> &values);
-    void homCNRReady(const QVector<double> &values);
-    void cdlWSReady(const QVector<double> &values);
-    void cdlCNRReady(const QVector<double> &values);
-    void homProfileReady(VerticalWindProfilePtr profile);
-    void cdlProfileReady(VerticalWindProfilePtr profile);
+    void lockChanged(HandleCore::ResourcePhase phase) override;
+    void spectrumReady(int channel, const QVector<double> &values) override;
+    void radialReady(int channel, const QVector<double> &ranges, const QVector<double> &speeds,
+                     const QVector<double> &cnr, bool calibrated) override;
+    void profileReady(int channel, NonuniformVerticalWindProfilePtr profile) override;
 
 public:
     // **本卡没有参数下发口**：参数下行协议目前未知，真码逆向出来之前不开这口，也不留半截接线
@@ -99,9 +81,6 @@ public:
     // "启动这次采集"的参数，本该编进 buildStart，只是目前卡未实现（见 HfnlRunSide 的 accumSec_ 注）。
 
 private:
-
-    void run() override { consumeFrames(makeHfnlProcessor(this)); }
-
     void PreDestruction() noexcept final
     {
         static_assert(FinalDevice<HfnlDevice, decltype(&HfnlDevice::PreDestruction)>);
@@ -113,12 +92,13 @@ private:
 public Q_SLOTS:
     bool open(const int interfaceIndex)
     {
-        const auto params = PcapForm::parseParameters(this->device(), interfaceIndex,
+        const auto params = PcapForm::parseParameters(*this, interfaceIndex,
             HfnlConfig::hostIPv4, HfnlConfig::hostPort, HfnlConfig::deviceIPv4, HfnlConfig::devicePort,
             HfnlConfig::deviceMAC, DAQDevice::kPcapReadTimeout, DAQDevice::kPcapKernelBufferBytes);
-        return params && this->device().open(*params);
+        // 本槽按名遮住 Handle::open；连接参数交给 Handle 本身。
+        return params && PcapHandle::open(*params);
     }
-    void close() { this->device().close(); }
+    void close() { PcapHandle::close(); }
     // 模板族层不能声明元对象；本类仅提供 QML 调用所需的槽入口。
     void startTest(const int accumSec, const bool save, const QUrl &folder)
     {
