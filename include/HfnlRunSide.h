@@ -37,7 +37,7 @@ namespace HfnlConfig {
     // 零风速在频带中心（第 freq/2 个频点）。────────────────────
     static constexpr double homBinMHz = 500. / 1024.;
     static constexpr double cdlBinMHz = 500. / 512.;
-    static constexpr double metersPerSecondPerMHz = 1.55 / 2.;
+    static constexpr double wavelengthM = 1.55e-6; // 两路共用激光
     static constexpr double rangeStartM = 0.; // 两路第 0 门斜距；第 k 门 = rangeStartM + k·门距
     static constexpr double homDBinDist = 150.;
     static constexpr double cdlDBinDist = 60.;
@@ -117,7 +117,8 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
                        {channel(QStringLiteral("HOM"), HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq,
                                 HfnlConfig::homDBinDist, HfnlConfig::homBinMHz),
                         channel(QStringLiteral("CDL"), HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq,
-                                HfnlConfig::cdlDBinDist, HfnlConfig::cdlBinMHz)}) {}
+                                HfnlConfig::cdlDBinDist, HfnlConfig::cdlBinMHz)},
+                       HfnlConfig::wavelengthM) {}
 
     static DAQChannel channel(QString name, const int rows, const int columns, const double gateM, const double binMHz)
     {
@@ -129,7 +130,6 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         c.freqStartMHz = 0.0;
         c.freqStepMHz = binMHz;
         c.zeroWindMHz = columns / 2 * binMHz;
-        c.metersPerSecondPerMHz = HfnlConfig::metersPerSecondPerMHz;
         return c;
     }
 
