@@ -69,10 +69,12 @@ public:
     Q_INVOKABLE [[nodiscard]] QVariantMap chartParameters() const
     {
         const auto homPlotConfiguration = DAQChartSpecification::make(
-            HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::rangeStartM, HfnlConfig::homDBinDist,
+            LinearArray2D<double>(HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::rangeStartM,
+                                  HfnlConfig::homDBinDist, 0.0, HfnlConfig::homBinMHz),
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
         const auto cdlPlotConfiguration = DAQChartSpecification::make(
-            HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq, HfnlConfig::rangeStartM, HfnlConfig::cdlDBinDist,
+            LinearArray2D<double>(HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq, HfnlConfig::rangeStartM,
+                                  HfnlConfig::cdlDBinDist, 0.0, HfnlConfig::cdlBinMHz),
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
         return {{"homPlotConfiguration", homPlotConfiguration},
                  {"cdlPlotConfiguration", cdlPlotConfiguration}};
@@ -81,7 +83,7 @@ public:
 // 族信号按通道下标：0 = HOM，1 = CDL。
 Q_SIGNALS:
     void lockChanged(HandleCore::ResourcePhase phase) override;
-    void spectrumReady(int channel, const QVector<double> &values) override;
+    void spectrumReady(int channel, const LinearArray2D<double> &spectrum) override;
     void radialReady(int channel, const LinearArray<double> &speeds, const LinearArray<double> &cnr, bool calibrated) override;
     void profileReady(int channel, VerticalWindProfilePtr profile) override;
 

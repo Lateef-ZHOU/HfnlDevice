@@ -124,11 +124,7 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
     {
         DAQChannel c;
         c.name = std::move(name);
-        c.rows = rows;
-        c.columns = columns;
-        c.radialWind = c.cnr = LinearArray<double>(HfnlConfig::rangeStartM, gateM);
-        c.freqStartMHz = 0.0;
-        c.freqStepMHz = binMHz;
+        c.spectrum = LinearArray2D<double>(rows, columns, HfnlConfig::rangeStartM, gateM, 0.0, binMHz);
         c.zeroWindMHz = columns / 2 * binMHz;
         return c;
     }
