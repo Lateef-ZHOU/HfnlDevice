@@ -38,6 +38,7 @@ namespace HfnlConfig {
     static constexpr double homBinMHz = 500. / 1024.;
     static constexpr double cdlBinMHz = 500. / 512.;
     static constexpr double metersPerSecondPerMHz = 1.55 / 2.;
+    static constexpr double rangeStartM = 0.; // 两路第 0 门斜距；第 k 门 = rangeStartM + k·门距
     static constexpr double homDBinDist = 150.;
     static constexpr double cdlDBinDist = 60.;
 
@@ -124,8 +125,10 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         c.name = std::move(name);
         c.rows = rows;
         c.columns = columns;
-        for (int gate = 0; gate < rows; ++gate) c.rangeM.append(gate * gateM);
-        for (int bin = 0; bin < columns; ++bin) c.freqMHz.append(bin * binMHz);
+        c.rangeStartM = HfnlConfig::rangeStartM;
+        c.rangeStepM = gateM;
+        c.freqStartMHz = 0.0;
+        c.freqStepMHz = binMHz;
         c.zeroWindMHz = columns / 2 * binMHz;
         c.metersPerSecondPerMHz = HfnlConfig::metersPerSecondPerMHz;
         return c;

@@ -54,7 +54,7 @@ ModulePage {
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onRadialReady(channel, ranges, speeds, cnr, calibrated) {
+                    function onRadialReady(channel, speeds, cnr, calibrated) {
                         if (channel !== 0)
                             return;
                         homWind.updateWS(speeds);
@@ -70,7 +70,7 @@ ModulePage {
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onRadialReady(channel, ranges, speeds, cnr, calibrated) {
+                    function onRadialReady(channel, speeds, cnr, calibrated) {
                         if (channel !== 1)
                             return;
                         cdlWind.updateWS(speeds);

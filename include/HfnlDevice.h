@@ -69,10 +69,10 @@ public:
     Q_INVOKABLE [[nodiscard]] QVariantMap chartParameters() const
     {
         const auto homPlotConfiguration = DAQChartSpecification::make(
-            HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::homDBinDist,
+            HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::rangeStartM, HfnlConfig::homDBinDist,
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
         const auto cdlPlotConfiguration = DAQChartSpecification::make(
-            HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq, HfnlConfig::cdlDBinDist,
+            HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq, HfnlConfig::rangeStartM, HfnlConfig::cdlDBinDist,
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
         return {{"homPlotConfiguration", homPlotConfiguration},
                  {"cdlPlotConfiguration", cdlPlotConfiguration}};
@@ -82,9 +82,8 @@ public:
 Q_SIGNALS:
     void lockChanged(HandleCore::ResourcePhase phase) override;
     void spectrumReady(int channel, const QVector<double> &values) override;
-    void radialReady(int channel, const QVector<double> &ranges, const QVector<double> &speeds,
-                     const QVector<double> &cnr, bool calibrated) override;
-    void profileReady(int channel, NonuniformVerticalWindProfilePtr profile) override;
+    void radialReady(int channel, const QVector<double> &speeds, const QVector<double> &cnr, bool calibrated) override;
+    void profileReady(int channel, VerticalWindProfilePtr profile) override;
 
 public:
     // **本卡没有参数下发口**：参数下行协议目前未知，真码逆向出来之前不开这口，也不留半截接线
