@@ -54,6 +54,18 @@ public:
     [[nodiscard]] QVariantMap acquisitionParameters() const { return {{"accumMin", HfnlConfig::accumMin}, {"accumMax", HfnlConfig::accumMax},
                  {"accumDefault", HfnlConfig::accumDefault}, {"saveDirDefault", QUrl::fromLocalFile(QDir::currentPath())}}; }
 
+    // 型号判据：累积时间须在 国实卡 的范围内，越界记录原因并返回空；不造 Collector、不发令。
+    [[nodiscard]] std::optional<DAQParameters> paramsFor(int accumSec, std::optional<WorldModel> pose,
+        std::optional<QDir> saveRoot, QString sessionDir, bool sync) const override
+    {
+        if (accumSec < HfnlConfig::accumMin || accumSec > HfnlConfig::accumMax)
+        {
+            Q_EMIT this->logMessage(QStringLiteral("累积时间 %1 秒超出本型号范围（%2~%3 秒），未启动")
+                                        .arg(accumSec).arg(HfnlConfig::accumMin).arg(HfnlConfig::accumMax));
+            return std::nullopt;
+        }
+        return DAQParameters{accumSec, std::move(pose), std::move(saveRoot), std::move(sessionDir), sync};
+    }
     Q_INVOKABLE [[nodiscard]] QVariantMap chartParameters() const
     {
         const auto homPlotConfiguration = DAQChartSpecification::make(

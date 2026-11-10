@@ -80,7 +80,7 @@ public:
     // 族模板层按请求参数造完整实例并备齐两路 double 收集区，收包线程直接解码。
     [[nodiscard]] static std::shared_ptr<HfnlCollector> create(const DAQParameters &parameters)
     {
-        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(parameters.accumSec, parameters.context));
+        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(parameters));
         (*next)[0].spectrum.resize(HfnlConfig::homSpecElement);
         (*next)[1].spectrum.resize(HfnlConfig::cdlSpecElement);
         return next;
@@ -88,15 +88,15 @@ public:
 
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
     // 启动命令：p0/p1 固定双包，现与参数无关。看门狗换斗重发即再发本双包。
-    // **[预留] 累积时间本该编在这里**：accumSec() 的语义是"卡累积这么久再吐一张谱"，那是
+    // **[预留] 累积时间本该编在这里**：parameters().accumSec 的语义是"卡累积这么久再吐一张谱"，那是
     // 启动这次采集的参数。目前卡没实现这个功能（是采集卡落后于我们），故本口暂时不吃它，
     // 它眼下只兑现了 timeoutMs 那一半用途。卡跟上之后改的是 acqCommands，本口签名不变。
     [[nodiscard]] QList<QByteArray> buildStart() const override { return acqCommands(); }
     // 单次数据发送完毕后硬件自动停止；buildStop 沿用基类空表，当前没有额外的 abort 命令。
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
-    [[nodiscard]] int timeoutMs() const override { return (accumSec() + 2) * 1000; }
+    [[nodiscard]] int timeoutMs() const override { return (parameters().accumSec + 2) * 1000; }
     // 同参数、独立且已分配的初始收集区；只读取原对象的不可变配置。
-    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return create({accumSec(), context()}); }
+    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return create(parameters()); }
 
     // 可变点：吃一口料；收齐两路全部元素即 complete（族基按通道串行算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
@@ -111,8 +111,8 @@ public:
     // 正确值，由收包线程交给 Collector。协程恢复在跨线程队列投递之后，那时读表量到的是
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
-    explicit HfnlCollector(const int accumSec, DAQContext context)
-        : DAQCollector(std::move(context), std::clamp(accumSec, HfnlConfig::accumMin, HfnlConfig::accumMax),
+    explicit HfnlCollector(DAQParameters parameters)
+        : DAQCollector(std::move(parameters),
                        {channel(QStringLiteral("HOM"), HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq,
                                 HfnlConfig::homDBinDist, HfnlConfig::homBinMHz),
                         channel(QStringLiteral("CDL"), HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq,
