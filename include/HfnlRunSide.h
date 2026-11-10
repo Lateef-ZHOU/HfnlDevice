@@ -78,13 +78,13 @@ namespace HfnlConfig {
 class HfnlCollector final : public DAQCollector
 {
 public:
-    // 族模板层按请求参数造完整实例并备齐两路 double 收集区，收包线程直接解码。
+    // 一帧 = HOM 全部元素后接 CDL 全部元素，每个元素 8 字节大端。
+    static constexpr qsizetype FrameBytes =
+        qsizetype(HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement) * HfnlConfig::elementByte;
+    // 族模板层按请求参数造完整实例。
     [[nodiscard]] static std::shared_ptr<HfnlCollector> create(const DAQParameters &parameters)
     {
-        auto next = std::shared_ptr<HfnlCollector>(new HfnlCollector(parameters));
-        (*next)[0].spectrum.resize(HfnlConfig::homSpecElement);
-        (*next)[1].spectrum.resize(HfnlConfig::cdlSpecElement);
-        return next;
+        return std::shared_ptr<HfnlCollector>(new HfnlCollector(parameters));
     }
 
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
@@ -96,10 +96,10 @@ public:
     // 单次数据发送完毕后硬件自动停止；buildStop 沿用基类空表，当前没有额外的 abort 命令。
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
     [[nodiscard]] int timeoutMs() const override { return (parameters().accumSec + 2) * 1000; }
-    // 同参数、独立且已分配的初始收集区；只读取原对象的不可变配置。
+    // 同参数、独立的初始收集区；只读取原对象的不可变配置。
     [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return create(parameters()); }
 
-    // 可变点：吃一口料；收齐两路全部元素即 complete（族基按通道串行算径向风与 CNR）。
+    // 可变点：吃一口料，只校验元素对齐并按序放置字节；凑齐即解析两路功率谱（族基构造通道即算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
     // 两处都偏晚：
     //   · **偏在链路上**：现读的是"我们处理到这里"的时刻，把内核缓冲 / 定时唤醒 / 线程调度
@@ -113,56 +113,46 @@ public:
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
     explicit HfnlCollector(DAQParameters parameters)
-        : DAQCollector(std::move(parameters),
-                       {channel(QStringLiteral("HOM"), HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq,
-                                HfnlConfig::homDBinDist, HfnlConfig::homBinMHz),
-                        channel(QStringLiteral("CDL"), HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq,
-                                HfnlConfig::cdlDBinDist, HfnlConfig::cdlBinMHz)},
-                       HfnlConfig::wavelengthM) {}
-
-    static DAQChannel channel(QString name, const int rows, const int columns, const double gateM, const double binMHz)
-    {
-        DAQChannel c;
-        c.name = std::move(name);
-        c.spectrum = LinearArray2D<double>(rows, columns, HfnlConfig::rangeStartM, gateM, 0.0, binMHz);
-        c.zeroWindMHz = columns / 2 * binMHz;
-        return c;
-    }
+        : DAQCollector(std::move(parameters), FrameBytes, HfnlConfig::wavelengthM) {}
 
     void onFeed(const std::optional<QByteArray> &item, const RxTime at) override
     {
         const auto &raw = *item;
-        constexpr int total = HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement;
-        // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素，也不部分接收超长包。
-        if (raw.isEmpty() || raw.size() % HfnlConfig::elementByte != 0
-            || raw.size() > (total - received_) * HfnlConfig::elementByte)
+        // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素；超长包由 store 整包拒收。
+        if (raw.isEmpty() || raw.size() % HfnlConfig::elementByte != 0)
             return;
-        if (received_ == 0)
+        const bool first = received() == 0;
+        if (store(received(), raw) && first)
             frameTime_ = at;
-        const int n = static_cast<int>(raw.size() / HfnlConfig::elementByte);
-        const int homCount = std::min(n, std::max(0, HfnlConfig::homSpecElement - received_));
-        const char *const bytes = raw.constData();
-        if (homCount > 0)
+    }
+
+    // HOM 元素为 21 位有符号 I/Q，功率 = I² + Q²（先整数求和再精确转 double）；CDL 元素低 42 位即功率。
+    std::vector<DAQChannel> decode(const QByteArray &frame) const override
+    {
+        const char *const bytes = frame.constData();
+        const auto word = [bytes](const int i) { return qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte); };
+        LinearArray2D<double> hom(HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::rangeStartM,
+                                  HfnlConfig::homDBinDist, 0.0, HfnlConfig::homBinMHz);
+        hom.reserve(HfnlConfig::homSpecElement);
+        for (int i = 0; i < HfnlConfig::homSpecElement; ++i)
         {
-            double *const out = (*this)[0].spectrum.data() + received_;
-            for (int i = 0; i < homCount; ++i)
-            {
-                const quint64 word = qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte);
-                // 21 位有符号 I/Q；先用整数平方求和，再精确转 double。
-                const qint64 re = static_cast<qint64>(((word >> 21) & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
-                const qint64 im = static_cast<qint64>((word & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
-                out[i] = static_cast<double>(re * re + im * im);
-            }
+            const quint64 w = word(i);
+            const qint64 re = static_cast<qint64>(((w >> 21) & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
+            const qint64 im = static_cast<qint64>((w & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
+            hom.push_back(static_cast<double>(re * re + im * im));
         }
-        if (homCount < n)
-        {
-            double *const out = (*this)[1].spectrum.data() + (received_ + homCount - HfnlConfig::homSpecElement);
-            for (int i = homCount; i < n; ++i)
-                out[i - homCount] = static_cast<double>(qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte) & 0x3FFFFFFFFFFULL);
-        }
-        received_ += n;
-        if (received_ == total)
-            complete();
+        LinearArray2D<double> cdl(HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq, HfnlConfig::rangeStartM,
+                                  HfnlConfig::cdlDBinDist, 0.0, HfnlConfig::cdlBinMHz);
+        cdl.reserve(HfnlConfig::cdlSpecElement);
+        for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
+            cdl.push_back(static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL));
+        std::vector<DAQChannel> channels;
+        channels.reserve(2);
+        channels.emplace_back(QStringLiteral("HOM"), std::move(hom), HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz,
+                              wavelengthM());
+        channels.emplace_back(QStringLiteral("CDL"), std::move(cdl), HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz,
+                              wavelengthM());
+        return channels;
     }
 
 private:
@@ -179,9 +169,6 @@ private:
         return {QByteArray::fromRawData(reinterpret_cast<const char *>(p0), sizeof p0),
                 QByteArray::fromRawData(reinterpret_cast<const char *>(p1), sizeof p1)}; // 静态存储期，零拷贝视图安全
     }
-
-    // 收集区就是两路通道的功率谱（[仅收包线程] 可写）。累积时间当前只用于看门狗，硬件尚未接入累积命令。
-    int received_ = 0; // 全帧元素偏移，也是完成判据；可在单包内跨 HOM/CDL 分界。
 };
 
 Q_DECLARE_METATYPE(std::shared_ptr<const HfnlCollector>)
