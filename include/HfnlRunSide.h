@@ -99,7 +99,7 @@ public:
     // 同参数、独立的初始收集区；只读取原对象的不可变配置。
     [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return create(parameters()); }
 
-    // 可变点：吃一口料，只校验元素对齐并按序放置字节；凑齐即解析两路功率谱（族基构造通道即算径向风与 CNR）。
+    // 可变点：吃一口料，只校验元素对齐并按序放置字节；凑齐的那一口解析两路功率谱（构造通道即算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
     // 两处都偏晚：
     //   · **偏在链路上**：现读的是"我们处理到这里"的时刻，把内核缓冲 / 定时唤醒 / 线程调度
@@ -113,23 +113,28 @@ public:
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
     explicit HfnlCollector(DAQParameters parameters)
-        : DAQCollector(std::move(parameters), FrameBytes, HfnlConfig::wavelengthM) {}
+        : DAQCollector(std::move(parameters), HfnlConfig::wavelengthM) {}
 
-    void onFeed(const std::optional<QByteArray> &item, const RxTime at) override
+    std::optional<std::vector<DAQChannel>> assemble(QByteArrayView bytes, RxTime at) override
     {
-        const auto &raw = *item;
-        // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素；超长包由 store 整包拒收。
-        if (raw.isEmpty() || raw.size() % HfnlConfig::elementByte != 0)
-            return;
-        const bool first = received() == 0;
-        if (store(received(), raw) && first)
+        // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素，也不部分接收超长包。
+        if (bytes.isEmpty() || bytes.size() % HfnlConfig::elementByte != 0 || bytes.size() > FrameBytes - received_)
+            return std::nullopt;
+        if (received_ == 0)
             frameTime_ = at;
+        std::memcpy(raw_.data() + received_, bytes.data(), static_cast<std::size_t>(bytes.size()));
+        received_ += bytes.size();
+        if (received_ != FrameBytes)
+            return std::nullopt;
+        auto channels = decode();
+        raw_ = QByteArray();
+        return channels;
     }
 
     // HOM 元素为 21 位有符号 I/Q，功率 = I² + Q²（先整数求和再精确转 double）；CDL 元素低 42 位即功率。
-    std::vector<DAQChannel> decode(const QByteArray &frame) const override
+    std::vector<DAQChannel> decode() const
     {
-        const char *const bytes = frame.constData();
+        const char *const bytes = raw_.constData();
         const auto word = [bytes](const int i) { return qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte); };
         LinearArray2D<double> hom(HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::rangeStartM,
                                   HfnlConfig::homDBinDist, 0.0, HfnlConfig::homBinMHz);
@@ -154,6 +159,9 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
                               wavelengthM());
         return channels;
     }
+
+    QByteArray raw_{FrameBytes, Qt::Uninitialized}; // 原样帧：HOM 元素后接 CDL 元素；解析后释放
+    qsizetype received_ = 0;                        // 已收字节，凑满 FrameBytes 即齐；可在单包内跨 HOM/CDL 分界
 
 private:
     // ── 采集启动命令（p0/p1 双包）──
