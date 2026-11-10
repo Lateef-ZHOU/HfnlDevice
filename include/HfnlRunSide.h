@@ -125,8 +125,7 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         c.name = std::move(name);
         c.rows = rows;
         c.columns = columns;
-        c.rangeStartM = HfnlConfig::rangeStartM;
-        c.rangeStepM = gateM;
+        c.radialWind = c.cnr = LinearArray<double>(HfnlConfig::rangeStartM, gateM);
         c.freqStartMHz = 0.0;
         c.freqStepMHz = binMHz;
         c.zeroWindMHz = columns / 2 * binMHz;
