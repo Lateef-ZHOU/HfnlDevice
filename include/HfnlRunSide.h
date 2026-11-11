@@ -81,11 +81,9 @@ public:
     // 一帧 = HOM 全部元素后接 CDL 全部元素，每个元素 8 字节大端。
     static constexpr qsizetype FrameBytes =
         qsizetype(HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement) * HfnlConfig::elementByte;
-    // 族模板层按请求参数造完整实例。
-    [[nodiscard]] static std::shared_ptr<HfnlCollector> create(const DAQParameters &parameters)
-    {
-        return std::shared_ptr<HfnlCollector>(new HfnlCollector(parameters));
-    }
+    // 族模板层按已校验的请求参数直接构造完整实例。
+    explicit HfnlCollector(const DAQParameters &parameters)
+        : DAQCollector(parameters, HfnlConfig::wavelengthM) {}
 
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
     // 启动命令：p0/p1 固定双包，现与参数无关。看门狗换斗重发即再发本双包。
@@ -97,7 +95,7 @@ public:
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
     [[nodiscard]] int timeoutMs() const override { return (parameters().accumSec + 2) * 1000; }
     // 同参数、独立的初始收集区；只读取原对象的不可变配置。
-    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return create(parameters()); }
+    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return std::make_shared<HfnlCollector>(parameters()); }
 
     // 可变点：吃一口料，只校验元素对齐并按序放置字节；凑齐的那一口解析两路功率谱（构造通道即算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
@@ -112,8 +110,6 @@ public:
     // 正确值，由收包线程交给 Collector。协程恢复在跨线程队列投递之后，那时读表量到的是
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
-    explicit HfnlCollector(DAQParameters parameters)
-        : DAQCollector(std::move(parameters), HfnlConfig::wavelengthM) {}
 
     std::optional<std::vector<DAQChannel>> assemble(QByteArrayView bytes, RxTime at) override
     {
