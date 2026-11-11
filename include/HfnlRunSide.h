@@ -73,7 +73,7 @@ namespace HfnlConfig {
 
 // 两路通道 HOM（下标 0）、CDL（下标 1）；工厂为每次尝试备齐两路 double，收包线程直接解码，
 // 收齐末包即按族标准方法处理。
-// makeSelf 只读不可变参数与上下文，与收包写数组互不干涉。
+// 看门狗重试只读出生即定的参数，与收包写缓冲互不干涉。
 // 每次启动发送一份 HOM/CDL 数据后硬件停止发送；缺包使本次无法收齐，由看门狗重新发起采集。
 class HfnlCollector final : public DAQCollector
 {
@@ -87,15 +87,14 @@ public:
 
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
     // 启动命令：p0/p1 固定双包，现与参数无关。看门狗换斗重发即再发本双包。
-    // **[预留] 累积时间本该编在这里**：parameters().accumSec 的语义是"卡累积这么久再吐一张谱"，那是
+    // **[预留] 累积时间本该编在这里**：parameters.accumSec 的语义是"卡累积这么久再吐一张谱"，那是
     // 启动这次采集的参数。目前卡没实现这个功能（是采集卡落后于我们），故本口暂时不吃它，
     // 它眼下只兑现了 timeoutMs 那一半用途。卡跟上之后改的是 acqCommands，本口签名不变。
     [[nodiscard]] QList<QByteArray> buildStart() const override { return acqCommands(); }
     // 单次数据发送完毕后硬件自动停止；buildStop 沿用基类空表，当前没有额外的 abort 命令。
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
-    [[nodiscard]] int timeoutMs() const override { return (parameters().accumSec + 2) * 1000; }
+    [[nodiscard]] int timeoutMs() const override { return (parameters.accumSec + 2) * 1000; }
     // 同参数、独立的初始收集区；只读取原对象的不可变配置。
-    [[nodiscard]] std::shared_ptr<HfnlCollector> makeSelf() const { return std::make_shared<HfnlCollector>(parameters()); }
 
     // 可变点：吃一口料，只校验元素对齐并按序放置字节；凑齐的那一口解析两路功率谱（构造通道即算径向风与 CNR）。
     // **帧时刻盖在首包，用的是首包的到料时刻**（用户定），而不是"判齐那一拍现读系统时间"——后者
