@@ -66,6 +66,8 @@ public:
         }
         return DAQParameters(*this, accumSec, std::move(pose), std::move(saveRoot), std::move(sessionDir), sync);
     }
+    // 单次数据发送完毕后硬件自动停止，没有中止命令。
+    QList<QByteArray> stopCommands() const override { return {}; }
     Q_INVOKABLE [[nodiscard]] QVariantMap chartParameters() const
     {
         const auto homPlotConfiguration = DAQChartSpecification::make(
