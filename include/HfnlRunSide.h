@@ -54,7 +54,7 @@ namespace HfnlConfig {
     static constexpr auto deviceIPv4 = "192.168.0.2";
     static constexpr int devicePort = 8080;
     static constexpr char deviceMAC[] = "00:11:22:33:44:55";
-    // 读取政策（唤醒间隔 / 内核缓冲）不在这儿：那是族级常量，住 DAQDeviceBase::kPcap*（由本族的流量形状决定）。
+    // 读取政策（唤醒间隔 / 内核缓冲）不在这儿：那是族级常量，住 DAQFamily::kPcap*（由本族的流量形状决定）。
 
     // ── 采集参数默认值/范围 ─────────────────────────────────────────────────
     static constexpr int accumDefault = 1; // 累积时间（秒）——语义见收集器 buildStart 注

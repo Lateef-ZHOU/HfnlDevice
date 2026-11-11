@@ -9,7 +9,7 @@
 #include <QUrl>
 #include <QVariantMap>
 
-#include "DAQDevice.h"                  // 采集卡族两层（族基 DAQDeviceBase + 族层 DAQDevice）
+#include "DAQDevice.h"                  // 采集卡族两层（族基 DAQFamily + 族层 DAQDevice）
 #include "PcapForm.h"
 #include "HfnlRunSide.h"        // 运行侧：常量 + 收集器
 
