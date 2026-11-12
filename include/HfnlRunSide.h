@@ -95,14 +95,14 @@ struct HfnlCdlSpec
 // 收齐末包即按族标准方法处理。
 // 看门狗重试只读出生即定的参数，与收包写缓冲互不干涉。
 // 每次启动发送一份 HOM/CDL 数据后硬件停止发送；缺包使本次无法收齐，由看门狗重新发起采集。
-class HfnlCollector final : public DAQCollector
+class HfnlCollector final : public TypedDAQCollector<DAQChannel<HfnlHomSpec>, DAQChannel<HfnlCdlSpec>>
 {
 public:
     // 一帧 = HOM 全部元素后接 CDL 全部元素，每个元素 8 字节大端。
     static constexpr qsizetype FrameBytes =
         qsizetype(HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement) * HfnlConfig::elementByte;
     // 族模板层按已校验的请求参数直接构造完整实例。
-    explicit HfnlCollector(const DAQParameters &parameters) : DAQCollector(parameters) {}
+    explicit HfnlCollector(const DAQParameters &parameters) : TypedDAQCollector(parameters) {}
 
     // ── 指示区：命令 / 时限 / 造下一只（[主]，纯函数纪律：同参数同输出）──
     // 启动命令：p0/p1 固定双包，现与参数无关。看门狗换斗重发即再发本双包。
@@ -129,7 +129,7 @@ public:
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
 
-    std::optional<DAQChannels> assemble(QByteArrayView bytes, RxTime at) override
+    std::optional<Frame> assemble(QByteArrayView bytes, RxTime at) override
     {
         // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素，也不部分接收超长包。
         if (bytes.isEmpty() || bytes.size() % HfnlConfig::elementByte != 0 || bytes.size() > FrameBytes - received_)
@@ -146,7 +146,7 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
     }
 
     // HOM 元素为 21 位有符号 I/Q，功率 = I² + Q²（先整数求和再精确转 double）；CDL 元素低 42 位即功率。
-    DAQChannels decode() const
+    Frame decode() const
     {
         const char *const bytes = raw_.constData();
         const auto word = [bytes](const int i) { return qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte); };
@@ -163,8 +163,8 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         cdl.reserve(HfnlConfig::cdlSpecElement);
         for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
             cdl.push_back(static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL));
-        return {std::make_shared<TypedDAQChannel<HfnlHomSpec>>(std::move(hom)),
-                std::make_shared<TypedDAQChannel<HfnlCdlSpec>>(std::move(cdl))};
+        return {DAQChannel<HfnlHomSpec>(std::move(hom)),
+                DAQChannel<HfnlCdlSpec>(std::move(cdl))};
     }
 
     QByteArray raw_{FrameBytes, Qt::Uninitialized}; // 原样帧：HOM 元素后接 CDL 元素；解析后释放
