@@ -1,5 +1,10 @@
 # HfnlDevice
 
+## 风廓线类型入口（2026-11-13 用户定）
+
+改从 Algorithm 的 `WindProfile.h` 引入垂直风廓线整帧类型，跟随删除独立旧头。采集、反演、保存及四束编排行为不变。
+
+
 2026-11-13 用户定：通道规格的距离门数量与频点数量分别命名为 `rangeGateCount`、`frequencyBinCount`，取代 `rows`、`columns`。同步规格使用方，数值与数据布局不变；通用二维传输对象和 SpectrumLike 的行列接口保持。
 
 2026-11-10 用户定（凑帧归官邸）：官邸持有原样帧缓冲与已收字节，`assemble` 校验元素对齐与剩余容量后放置字节，凑满即按 HOM/CDL 换算，解析后释放缓冲。
@@ -32,6 +37,8 @@ Windows 验证：通过主程序本地源码覆盖增量构建，五个网口官
 本轮 Windows Qt 6.11.2 Release、qmllint 及既有页面冒烟 1/1 通过，无编译/QML 警告；证据为 `build/build-fixed-connection.log`、`build/test-fixed-connection.log`。未连接实物，不重复 Linux/协议全套，仅本地提交。
 
 LiDAR 的独立官邸：具体 C++ 后端、Collector/协议/处理逻辑及其 QML 页面在同一仓库维护。来自 LiDAR_DataACQ master `5cc6d65`，本次分仓不改变运行行为。
+
+验证：MSVC Release、公开头编译与 CTest 1/1 官邸冒烟通过。 使用本地依赖覆盖，未推送。
 
 ## 边界与接入
 

@@ -3,7 +3,7 @@
 #include <QtQml/qqmlregistration.h>
 #include "DAQChartSpecification.h"
 #include "AcqSaver.h"
-#include "VerticalWindProfile.h"
+#include "WindProfile.h"
 #include <memory>
 #include <QString>
 #include <QUrl>
