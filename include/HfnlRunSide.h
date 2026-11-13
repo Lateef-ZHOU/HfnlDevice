@@ -77,7 +77,7 @@ struct HfnlHomSpec
     static constexpr const char *name = "HOM";
     static constexpr double wavelengthM = HfnlConfig::wavelengthM;
     static constexpr double zeroWindMHz = HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz;
-    static constexpr int rows = HfnlConfig::homSpecDbin, columns = HfnlConfig::homSpecFreq;
+    static constexpr int rangeGateCount = HfnlConfig::homSpecDbin, frequencyBinCount = HfnlConfig::homSpecFreq;
     static constexpr double rangeStartM = HfnlConfig::rangeStartM, rangeStepM = HfnlConfig::homDBinDist;
     static constexpr double frequencyStartMHz = 0.0, frequencyStepMHz = HfnlConfig::homBinMHz;
 };
@@ -86,7 +86,7 @@ struct HfnlCdlSpec
     static constexpr const char *name = "CDL";
     static constexpr double wavelengthM = HfnlConfig::wavelengthM;
     static constexpr double zeroWindMHz = HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz;
-    static constexpr int rows = HfnlConfig::cdlSpecDbin, columns = HfnlConfig::cdlSpecFreq;
+    static constexpr int rangeGateCount = HfnlConfig::cdlSpecDbin, frequencyBinCount = HfnlConfig::cdlSpecFreq;
     static constexpr double rangeStartM = HfnlConfig::rangeStartM, rangeStepM = HfnlConfig::cdlDBinDist;
     static constexpr double frequencyStartMHz = 0.0, frequencyStepMHz = HfnlConfig::cdlBinMHz;
 };
