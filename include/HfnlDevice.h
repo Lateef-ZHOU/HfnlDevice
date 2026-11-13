@@ -85,8 +85,8 @@ public:
 // 族信号按通道下标：0 = HOM，1 = CDL。
 Q_SIGNALS:
     void lockChanged(HandleCore::ResourcePhase phase) override;
-    void spectrumReady(int channel, const LinearArray2D<double> &spectrum) override;
-    void radialReady(int channel, const LinearArray<double> &speeds, const LinearArray<double> &cnr) override;
+    void spectrumReady(int channel, const LinearSpectrumPtr &spectrum) override;
+    void radialReady(int channel, const LinearSeriesPtr &speeds, const LinearSeriesPtr &cnr) override;
     void profileReady(int channel, VerticalWindProfilePtr profile) override;
 
 public:
