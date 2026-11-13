@@ -1,3 +1,9 @@
+## 2026-11-14：删除旧风场测试依赖
+
+Windows/MSVC Release 页面目标构建与页面测试 1/1 通过。
+
+配合 Algorithm 删除 WindField.h，测试改用标准风廓线帧或删除无用引用；本库生产、保存与取消逻辑不变。不推送。
+
 ## 2026-11-14 风廓线原帧直接传输（用户定）
 
 HOM、CDL 的 profilesReady 直接携带各规格 VerticalWindProfileUnit 的只读份额元组。两张具体风羽图只接管自己的通道，不持有整组通道；Qt 类型登记和末端入口留在本仓库。四束、算法与保存格式保持。Windows/MSVC Release 构建及页面测试 1/1 通过。 本轮不推送。

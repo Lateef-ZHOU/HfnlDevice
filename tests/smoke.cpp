@@ -1,5 +1,4 @@
 #include "HfnlDevice.h"
-#include "WindField.h"
 #include <optional>
 #include <QGuiApplication>
 #include <QQmlEngine>
