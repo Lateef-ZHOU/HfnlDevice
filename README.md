@@ -1,3 +1,9 @@
+## 2026-11-14：清理 Collector 元类型登记（用户定）
+
+删除无用户的 Collector 只读份额 Q_DECLARE_METATYPE 声明；Collector 仅在 C++ 收集、协程及四束历史中流转。通道结果及风廓线的 Qt/QML 登记保持，算法、保存格式、取消链与数据保活方式不变。曲面轴配置和谱页保活范围暂缓；本轮不推送。
+
+验证：主程序原 build Windows/MSVC Release 增量构建通过，覆盖本官邸的元对象、QML 类型登记及链接；8 秒离屏存活冒烟通过，stderr 为空。仅本地验证，未连接实物。证据见 LiDAR_DataACQ/build/collector-metatype-build.log 与 collector-metatype-smoke.{out,err,json}。
+
 ## 2026-11-14：静态功率谱、径向风与 CNR（用户定）
 
 HOM/CDL 解码直接填写各自 Spectrum<Spec> 的最终数组；DAQChannel 构造径向风及独立 CNR。channelsReady 经只读共享通道元组连接对应的具体绘图器，Qt 登记留在本库；不再构造动态谱/剖面或逐帧复制轴。大端读取、平方转换、收包/判齐、四束历史和保存格式保持。

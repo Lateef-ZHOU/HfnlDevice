@@ -183,5 +183,3 @@ private:
                 QByteArray::fromRawData(reinterpret_cast<const char *>(p1), sizeof p1)}; // 静态存储期，零拷贝视图安全
     }
 };
-
-Q_DECLARE_METATYPE(std::shared_ptr<const HfnlCollector>)
