@@ -4,7 +4,7 @@
 #include <QtQml/qqmlregistration.h>
 #include "DAQChartSpecification.h"
 #include "DAQFamily/AcqSaver.h"
-#include "WindProfile.h"
+#include "DAQFamily/WindProfile.h"
 #include <memory>
 #include <QString>
 #include <QUrl>
