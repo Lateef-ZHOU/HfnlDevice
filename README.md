@@ -1,3 +1,7 @@
+## 2026-11-14 风廓线原帧直接传输（用户定）
+
+HOM、CDL 的 profilesReady 直接携带各规格 VerticalWindProfileUnit 的只读份额元组。两张具体风羽图只接管自己的通道，不持有整组通道；Qt 类型登记和末端入口留在本仓库。四束、算法与保存格式保持。Windows/MSVC Release 构建及页面测试 1/1 通过。 本轮不推送。
+
 # HfnlDevice
 
 ## 风廓线类型入口（2026-11-13 用户定）

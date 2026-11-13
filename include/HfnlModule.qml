@@ -81,7 +81,7 @@ ModulePage {
         },
         Page {
             title: qsTr("HOM·风廓线")
-            contentItem: WindBarbItem {
+            contentItem: HfnlHomWindBarb {
                 id: homBarb
                 readonly property var spec: internals.chartParameters.homPlotConfiguration
                 configuration: ({
@@ -92,16 +92,13 @@ ModulePage {
                     })
                 Connections {
                     target: internals.device
-                    function onProfileReady(channel, profile) {
-                        if (channel === 0)
-                            homBarb.appendColumn(profile);
-                    }
+                    function onProfilesReady(profiles) { homBarb.appendProfiles(profiles) }
                 }
             }
         },
         Page {
             title: qsTr("CDL·风廓线")
-            contentItem: WindBarbItem {
+            contentItem: HfnlCdlWindBarb {
                 id: cdlBarb
                 readonly property var spec: internals.chartParameters.cdlPlotConfiguration
                 configuration: ({
@@ -112,10 +109,7 @@ ModulePage {
                     })
                 Connections {
                     target: internals.device
-                    function onProfileReady(channel, profile) {
-                        if (channel === 1)
-                            cdlBarb.appendColumn(profile);
-                    }
+                    function onProfilesReady(profiles) { cdlBarb.appendProfiles(profiles) }
                 }
             }
         }

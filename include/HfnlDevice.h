@@ -1,4 +1,5 @@
 #pragma once
+#include "WindBarbItem.h"
 #include <QDateTime>
 #include <QtQml/qqmlregistration.h>
 #include "DAQChartSpecification.h"
@@ -12,6 +13,15 @@
 #include "DAQDevice.h"                  // 采集卡族两层（族基 DAQFamily + 族层 DAQDevice）
 #include "PcapForm.h"
 #include "HfnlRunSide.h"        // 运行侧：常量 + 收集器
+
+// Qt 只登记具体结果元组；各项仍指向算法生成的原帧。
+using HfnlProfiles = DAQDevice<PcapHandle, HfnlCollector>::Profiles;
+struct HfnlProfilesQml
+{
+    Q_GADGET
+    QML_FOREIGN(HfnlProfiles)
+    QML_ANONYMOUS
+};
 
 // 国实官邸：组装型号命令与页面参数；两路通道的处理、落盘与风廓线由族层完成。
 // Qt 元对象末端：Handle、Device 与采集卡族共用这一个 QObject；析构首句先停收包再拆派生状态。
@@ -87,7 +97,7 @@ Q_SIGNALS:
     void lockChanged(HandleCore::ResourcePhase phase) override;
     void spectrumReady(int channel, const LinearSpectrumPtr &spectrum) override;
     void radialReady(int channel, const LinearSeriesPtr &speeds, const LinearSeriesPtr &cnr) override;
-    void profileReady(int channel, VerticalWindProfilePtr profile) override;
+    void profilesReady(const HfnlProfiles &profiles) override;
 
 public:
     // **本卡没有参数下发口**：参数下行协议目前未知，真码逆向出来之前不开这口，也不留半截接线
@@ -122,4 +132,36 @@ public Q_SLOTS:
     }
     void cancelTest() noexcept { DAQDevice::cancelTest(); }
 
+};
+
+// 末端仅提供 Qt 入口；历史和绘制由 ChartCore 的模板实现。
+class HfnlHomWindBarb
+#ifdef Q_MOC_RUN
+    : public WindBarbChart
+#else
+    : public WindBarbItem<typename std::tuple_element_t<0, HfnlProfiles>::element_type>
+#endif
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlHomWindBarb(QQuickItem *parent = nullptr) : WindBarbItem(parent) {}
+    Q_INVOKABLE void appendProfiles(const HfnlProfiles &profiles)
+    { appendColumn(std::get<0>(profiles)); }
+};
+
+// 末端仅提供 Qt 入口；历史和绘制由 ChartCore 的模板实现。
+class HfnlCdlWindBarb
+#ifdef Q_MOC_RUN
+    : public WindBarbChart
+#else
+    : public WindBarbItem<typename std::tuple_element_t<1, HfnlProfiles>::element_type>
+#endif
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlCdlWindBarb(QQuickItem *parent = nullptr) : WindBarbItem(parent) {}
+    Q_INVOKABLE void appendProfiles(const HfnlProfiles &profiles)
+    { appendColumn(std::get<1>(profiles)); }
 };
