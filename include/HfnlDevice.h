@@ -1,5 +1,7 @@
 #pragma once
 #include "WindBarbItem.h"
+#include "SurfaceItem.h"
+#include "Wind2DItem.h"
 #include <QDateTime>
 #include <QtQml/qqmlregistration.h>
 #include "DAQChartSpecification.h"
@@ -16,6 +18,12 @@
 
 // Qt 只登记具体结果元组；各项仍指向算法生成的原帧。
 using HfnlProfiles = DAQDevice<PcapHandle, HfnlCollector>::Profiles;
+using HfnlChannels = DAQDevice<PcapHandle, HfnlCollector>::Channels;
+struct HfnlChannelsQml {
+    Q_GADGET
+    QML_FOREIGN(HfnlChannels)
+    QML_ANONYMOUS
+};
 struct HfnlProfilesQml
 {
     Q_GADGET
@@ -80,13 +88,9 @@ public:
     QList<QByteArray> stopCommands() const override { return {}; }
     Q_INVOKABLE [[nodiscard]] QVariantMap chartParameters() const
     {
-        const auto homPlotConfiguration = DAQChartSpecification::make(
-            LinearArray2D<double>(HfnlConfig::homSpecDbin, HfnlConfig::homSpecFreq, HfnlConfig::rangeStartM,
-                                  HfnlConfig::homDBinDist, 0.0, HfnlConfig::homBinMHz),
+        const auto homPlotConfiguration = DAQChartSpecification::make<HfnlHomSpec>(
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
-        const auto cdlPlotConfiguration = DAQChartSpecification::make(
-            LinearArray2D<double>(HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecFreq, HfnlConfig::rangeStartM,
-                                  HfnlConfig::cdlDBinDist, 0.0, HfnlConfig::cdlBinMHz),
+        const auto cdlPlotConfiguration = DAQChartSpecification::make<HfnlCdlSpec>(
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
         return {{"homPlotConfiguration", homPlotConfiguration},
                  {"cdlPlotConfiguration", cdlPlotConfiguration}};
@@ -95,8 +99,7 @@ public:
 // 族信号按通道下标：0 = HOM，1 = CDL。
 Q_SIGNALS:
     void lockChanged(HandleCore::ResourcePhase phase) override;
-    void spectrumReady(int channel, const LinearSpectrumPtr &spectrum) override;
-    void radialReady(int channel, const LinearSeriesPtr &speeds, const LinearSeriesPtr &cnr) override;
+    void channelsReady(const HfnlChannels &channels) override;
     void profilesReady(const HfnlProfiles &profiles) override;
 
 public:
@@ -164,4 +167,88 @@ public:
     explicit HfnlCdlWindBarb(QQuickItem *parent = nullptr) : WindBarbItem(parent) {}
     Q_INVOKABLE void appendProfiles(const HfnlProfiles &profiles)
     { appendColumn(std::get<1>(profiles)); }
+};
+
+// 仅适配 Qt 元对象；类型与只读份额直达绘图数值入口。
+class HfnlHomSpectrum : public SurfaceItem
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlHomSpectrum(QQuickItem *parent = nullptr) : SurfaceItem(parent) {}
+    Q_INVOKABLE bool setData(const HfnlChannels &channels, double low, double high)
+    {
+        if (!channels) return false;
+        return setSpectrum(std::get<0>(*channels).spectrum, low, high);
+    }
+};
+
+// 仅适配 Qt 元对象；类型与只读份额直达绘图数值入口。
+class HfnlHomRadialWind : public Wind2DItem
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlHomRadialWind(QQuickItem *parent = nullptr) : Wind2DItem(parent) {}
+    Q_INVOKABLE void setData(const HfnlChannels &channels)
+    {
+        if (!channels) return;
+        setRadialWind(std::get<0>(*channels).radialWind);
+    }
+};
+
+// 仅适配 Qt 元对象；类型与只读份额直达绘图数值入口。
+class HfnlHomCNR : public Wind2DItem
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlHomCNR(QQuickItem *parent = nullptr) : Wind2DItem(parent) {}
+    Q_INVOKABLE void setData(const HfnlChannels &channels)
+    {
+        if (!channels) return;
+        setCNR(std::get<0>(*channels).cnr);
+    }
+};
+
+// 仅适配 Qt 元对象；类型与只读份额直达绘图数值入口。
+class HfnlCdlSpectrum : public SurfaceItem
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlCdlSpectrum(QQuickItem *parent = nullptr) : SurfaceItem(parent) {}
+    Q_INVOKABLE bool setData(const HfnlChannels &channels, double low, double high)
+    {
+        if (!channels) return false;
+        return setSpectrum(std::get<1>(*channels).spectrum, low, high);
+    }
+};
+
+// 仅适配 Qt 元对象；类型与只读份额直达绘图数值入口。
+class HfnlCdlRadialWind : public Wind2DItem
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlCdlRadialWind(QQuickItem *parent = nullptr) : Wind2DItem(parent) {}
+    Q_INVOKABLE void setData(const HfnlChannels &channels)
+    {
+        if (!channels) return;
+        setRadialWind(std::get<1>(*channels).radialWind);
+    }
+};
+
+// 仅适配 Qt 元对象；类型与只读份额直达绘图数值入口。
+class HfnlCdlCNR : public Wind2DItem
+{
+    Q_OBJECT
+    QML_ELEMENT
+public:
+    explicit HfnlCdlCNR(QQuickItem *parent = nullptr) : Wind2DItem(parent) {}
+    Q_INVOKABLE void setData(const HfnlChannels &channels)
+    {
+        if (!channels) return;
+        setCNR(std::get<1>(*channels).cnr);
+    }
 };

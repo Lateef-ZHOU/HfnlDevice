@@ -1,3 +1,11 @@
+## 2026-11-14：静态功率谱、径向风与 CNR（用户定）
+
+HOM/CDL 解码直接填写各自 Spectrum<Spec> 的最终数组；DAQChannel 构造径向风及独立 CNR。channelsReady 经只读共享通道元组连接对应的具体绘图器，Qt 登记留在本库；不再构造动态谱/剖面或逐帧复制轴。大端读取、平方转换、收包/判齐、四束历史和保存格式保持。
+
+本轮仅本地联调，不推送；与配套 FamilyCore、ChartCore 及官邸源码一起使用。
+
+验证：Windows/MSVC Release 构建及 CTest 1/1 通过；补测实际 HOM/CDL 分段收包、大端 I/Q 解码与最终固定数组位置，QML 页面和静态通道信号通过。证据：build-daq/static-frames*.log 与 Testing/Temporary/LastTest.log。
+
 ## 2026-11-14：接入 FamilyCore（用户定）
 
 依赖声明与开关改用 FamilyCore / FAMILYCORE_WITH_*，协程头由 DeviceCore 提供。当前仅本地整理，GitHub 仍为 TaskCore，旧固定提交暂不更新；联调使用 `FETCHCONTENT_SOURCE_DIR_LIDAR_FAMILYCORE` 指向相邻 FamilyCore，并覆盖配套 DeviceCore/Algorithm 等源码。Windows 主程序或 simonly 的实际消费目标构建通过，业务与数据格式不变；未推送、未更新交付包。

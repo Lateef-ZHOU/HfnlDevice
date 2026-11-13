@@ -150,19 +150,17 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
     {
         const char *const bytes = raw_.constData();
         const auto word = [bytes](const int i) { return qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte); };
-        std::vector<double> hom;
-        hom.reserve(HfnlConfig::homSpecElement);
+        auto hom = std::make_unique<Spectrum<HfnlHomSpec>>();
         for (int i = 0; i < HfnlConfig::homSpecElement; ++i)
         {
             const quint64 w = word(i);
             const qint64 re = static_cast<qint64>(((w >> 21) & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
             const qint64 im = static_cast<qint64>((w & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
-            hom.push_back(static_cast<double>(re * re + im * im));
+            (*hom)[i] = static_cast<double>(re * re + im * im);
         }
-        std::vector<double> cdl;
-        cdl.reserve(HfnlConfig::cdlSpecElement);
+        auto cdl = std::make_unique<Spectrum<HfnlCdlSpec>>();
         for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
-            cdl.push_back(static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL));
+            (*cdl)[i] = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
         return {DAQChannel<HfnlHomSpec>(std::move(hom)),
                 DAQChannel<HfnlCdlSpec>(std::move(cdl))};
     }

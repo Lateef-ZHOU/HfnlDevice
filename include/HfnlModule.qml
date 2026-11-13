@@ -23,13 +23,11 @@ ModulePage {
             title: qsTr("HOM·功率谱")
             contentItem: SurfaceView {
                 id: homSurface
+                plot: HfnlHomSpectrum { configuration: homSurface.plotConfiguration }
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onSpectrumReady(channel, values) {
-                        if (channel === 0)
-                            homSurface.updateSpectrum(values);
-                    }
+                    function onChannelsReady(channels) { homSurface.updateSpectrum(channels) }
                 }
             }
         },
@@ -37,13 +35,11 @@ ModulePage {
             title: qsTr("CDL·功率谱")
             contentItem: SurfaceView {
                 id: cdlSurface
+                plot: HfnlCdlSpectrum { configuration: cdlSurface.plotConfiguration }
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onSpectrumReady(channel, values) {
-                        if (channel === 1)
-                            cdlSurface.updateSpectrum(values);
-                    }
+                    function onChannelsReady(channels) { cdlSurface.updateSpectrum(channels) }
                 }
             }
         },
@@ -51,15 +47,12 @@ ModulePage {
             title: qsTr("HOM·径向风")
             contentItem: Wind2DView {
                 id: homWind
+                windPlot: HfnlHomRadialWind { configuration: homWind.windConfiguration }
+                cnrPlot: HfnlHomCNR { configuration: homWind.cnrConfiguration }
                 specification: internals.chartParameters.homPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onRadialReady(channel, speeds, cnr) {
-                        if (channel !== 0)
-                            return;
-                        homWind.updateWS(speeds);
-                        homWind.updateCNR(cnr);
-                    }
+                    function onChannelsReady(channels) { homWind.updateWS(channels); homWind.updateCNR(channels) }
                 }
             }
         },
@@ -67,15 +60,12 @@ ModulePage {
             title: qsTr("CDL·径向风")
             contentItem: Wind2DView {
                 id: cdlWind
+                windPlot: HfnlCdlRadialWind { configuration: cdlWind.windConfiguration }
+                cnrPlot: HfnlCdlCNR { configuration: cdlWind.cnrConfiguration }
                 specification: internals.chartParameters.cdlPlotConfiguration
                 Connections {
                     target: internals.device
-                    function onRadialReady(channel, speeds, cnr) {
-                        if (channel !== 1)
-                            return;
-                        cdlWind.updateWS(speeds);
-                        cdlWind.updateCNR(cnr);
-                    }
+                    function onChannelsReady(channels) { cdlWind.updateWS(channels); cdlWind.updateCNR(channels) }
                 }
             }
         },
