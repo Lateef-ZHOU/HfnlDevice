@@ -1,8 +1,8 @@
 #pragma once
+#include <vector>
 #include <optional>
 #include <algorithm>
 #include <QByteArray>
-#include <QList>
 #include <QVector>
 #include <QtEndian>
 #include <QtGlobal> // quint64（谱元素字节）/ qint64 + Q_INT64_C（3D 值域上界）
@@ -109,7 +109,7 @@ public:
     // **[预留] 累积时间本该编在这里**：parameters.accumSec 的语义是"卡累积这么久再吐一张谱"，那是
     // 启动这次采集的参数。目前卡没实现这个功能（是采集卡落后于我们），故本口暂时不吃它，
     // 它眼下只兑现了 timeoutMs 那一半用途。卡跟上之后改的是 acqCommands，本口签名不变。
-    [[nodiscard]] QList<QByteArray> buildStart() const override { return acqCommands(); }
+    [[nodiscard]] std::vector<std::vector<unsigned char>> buildStart() const override { return acqCommands(); }
     // 单次数据发送完毕后硬件自动停止；buildStop 沿用基类空表，当前没有额外的 abort 命令。
     // 单次尝试时限 = 累积时间 + 2 s 余量：到点未齐即换新斗重发（重试是 Device 内政，不出协程）。
     [[nodiscard]] int timeoutMs() const override { return (parameters.accumSec + 2) * 1000; }
@@ -173,13 +173,12 @@ private:
     // 字节序列按位保真搬自 V6 的 DAQNPCapture::SendStartReceive（现场标定的魔法字节，含义
     // 未逆向；两包仅第 12/13 字节不同：{32,6} vs {54,0}）。此处只出 payload——全信封由
     // PcapHandle::onTX 组包。
-    [[nodiscard]] static QList<QByteArray> acqCommands()
+    [[nodiscard]] static std::vector<std::vector<unsigned char>> acqCommands()
     {
         static constexpr quint8 p0[] = {0, 16, 103, 0, 177, 134, 170, 0, 204, 221, 238, 170, 32, 6, 0,
                                         0, 0,  0,   0, 0,   0,   0,   0, 0,   0,   0,   0,   0,  0};
         static constexpr quint8 p1[] = {0, 16, 103, 0, 177, 134, 170, 0, 204, 221, 238, 170, 54, 0, 0,
                                         0, 0,  0,   0, 0,   0,   0,   0, 0,   0,   0,   0,   0,  0};
-        return {QByteArray::fromRawData(reinterpret_cast<const char *>(p0), sizeof p0),
-                QByteArray::fromRawData(reinterpret_cast<const char *>(p1), sizeof p1)}; // 静态存储期，零拷贝视图安全
+        return {{p0, p0 + sizeof p0}, {p1, p1 + sizeof p1}};
     }
 };

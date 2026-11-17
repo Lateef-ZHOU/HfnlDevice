@@ -1,3 +1,9 @@
+## 2026-11-17：命令集合使用 vector（用户定）
+
+Collector::buildStart/acqCommands 与设备 stopCommands 统一为 std::vector<std::vector<unsigned char>>。两条启动命令从原静态字节表直接构造自有数组，顺序和字节不变；仍无额外停机命令，原有超时与收包行为保持。
+
+不新增命令缓存或兼容包装。验证见主程序 docs/maintenance/validation.md；使用相邻源码覆盖，暂不推送。
+
 ## 2026-11-14：UTF-8 日志接口（用户定）
 
 准入固定日志使用 UTF-8 std::string，累积范围动态日志改为 std::format；通过 UICore 接入既有 QML 日志栏，不增加官邸转发。协议、规格和处理链不变。
