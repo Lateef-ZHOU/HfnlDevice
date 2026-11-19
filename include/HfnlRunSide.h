@@ -2,8 +2,9 @@
 #include <vector>
 #include <optional>
 #include <algorithm>
+#include <cstring>
+#include <span>
 #include <QByteArray>
-#include <QVector>
 #include <QtEndian>
 #include <QtGlobal> // quint64（谱元素字节）/ qint64 + Q_INT64_C（3D 值域上界）
 
@@ -125,15 +126,16 @@ public:
     // "主线程什么时候腾出手"——而主线程正是最忙的那个（设备与图表控制都在它上面）。
 private: // NVI 可变点：派生只实现、不调用（公开的是基类那张非虚的皮 feed）
 
-    std::optional<Frame> assemble(QByteArrayView bytes, RxTime at) override
+    std::optional<Frame> assemble(std::span<const unsigned char> bytes, RxTime at) override
     {
         // 硬件保证元素不跨包；非法长度整包拒收，不缓存半个元素，也不部分接收超长包。
-        if (bytes.isEmpty() || bytes.size() % HfnlConfig::elementByte != 0 || bytes.size() > FrameBytes - received_)
+        if (bytes.empty() || bytes.size() % HfnlConfig::elementByte != 0
+            || bytes.size() > static_cast<std::size_t>(FrameBytes - received_))
             return std::nullopt;
         if (received_ == 0)
             frameTime_ = at;
-        std::memcpy(raw_.data() + received_, bytes.data(), static_cast<std::size_t>(bytes.size()));
-        received_ += bytes.size();
+        std::memcpy(raw_.data() + received_, bytes.data(), bytes.size());
+        received_ += static_cast<qsizetype>(bytes.size());
         if (received_ != FrameBytes)
             return std::nullopt;
         auto channels = decode();

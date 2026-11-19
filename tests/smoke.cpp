@@ -1,5 +1,7 @@
 #include "HfnlDevice.h"
 #include <optional>
+#include <span>
+#include <vector>
 #include <QGuiApplication>
 #include <QQmlEngine>
 #include <QQmlComponent>
@@ -18,13 +20,14 @@ struct TestKey : DAQParamsKey { TestKey() {} };
 bool verifyDecodedArrays()
 {
     HfnlCollector collector(DAQParameters(TestKey{}, 1, {}, {}, {}, false));
-    QByteArray raw((HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement) * 8, '\0');
+    std::vector<unsigned char> raw((HfnlConfig::homSpecElement + HfnlConfig::cdlSpecElement) * 8);
     // HOM: (-3)^2 + 4^2；CDL: 高位标志不属于 42 位功率。
     qToBigEndian<quint64>((quint64(0x1ffffd) << 21) | 4, raw.data());
     qToBigEndian<quint64>(quint64(1) << 63 | 12345, raw.data() + HfnlConfig::homSpecElement * 8);
     qToBigEndian<quint64>(67890, raw.data() + raw.size() - 8);
-    if (collector.feed(raw.first(1024), {})) return false;
-    if (!collector.feed(raw.sliced(1024), {})) return false;
+    const std::span<const unsigned char> bytes = raw;
+    if (collector.feed(bytes.first(1024), {})) return false;
+    if (!collector.feed(bytes.subspan(1024), {})) return false;
     const auto &hom = *std::get<0>(collector.channels()).spectrum;
     const auto &cdl = *std::get<1>(collector.channels()).spectrum;
     return hom.size() == HfnlConfig::homSpecElement && hom[0] == 25 && hom[hom.size()-1] == 0
