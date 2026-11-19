@@ -90,9 +90,9 @@ public:
     std::vector<std::vector<unsigned char>> stopCommands() const override { return {}; }
     Q_INVOKABLE [[nodiscard]] QVariantMap chartParameters() const
     {
-        const auto homPlotConfiguration = DAQChartSpecification::make<HfnlHomSpec>(
+        const auto homPlotConfiguration = DAQChartSpecification::make<hfnlHom>(
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
-        const auto cdlPlotConfiguration = DAQChartSpecification::make<HfnlCdlSpec>(
+        const auto cdlPlotConfiguration = DAQChartSpecification::make<hfnlCdl>(
             HfnlConfig::plt2dWsMin, HfnlConfig::plt2dWsMax, HfnlConfig::plt3dValMax);
         return {{"homPlotConfiguration", homPlotConfiguration},
                  {"cdlPlotConfiguration", cdlPlotConfiguration}};
