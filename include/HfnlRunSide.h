@@ -73,7 +73,7 @@ namespace HfnlConfig {
 } // namespace HfnlConfig
 
 // 两路规格：零多普勒在各自中心频点；频率轴与「下标 → 风速」映射分开。
-inline constexpr double HfnlMetersPerMHz = RadialWindCalculation::metersPerSecondPerMHz(HfnlConfig::wavelengthM);
+inline constexpr double HfnlMetersPerMHz = HfnlConfig::wavelengthM / 2.0 * 1e6;
 using HfnlHomRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>;
 using HfnlHomFrequency = UniformMapping<0.0, HfnlConfig::homBinMHz, HfnlConfig::homSpecFreq>;
 using HfnlHomWind = UniformMapping<-HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz * HfnlMetersPerMHz,
