@@ -73,19 +73,19 @@ namespace HfnlConfig {
 } // namespace HfnlConfig
 
 // 两路规格：零多普勒在各自中心频点。
-inline constexpr DAQParams hfnlHom{
+inline constexpr DAQParams<UniformRangeMapping<HfnlConfig::rangeStartM,
+    HfnlConfig::rangeStartM + HfnlConfig::homDBinDist * HfnlConfig::homSpecDbin, HfnlConfig::homSpecDbin>> hfnlHom{
     .wavelengthM = HfnlConfig::wavelengthM,
     .zeroWindMHz = HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz,
-    .rangeStartM = HfnlConfig::rangeStartM, .rangeStepM = HfnlConfig::homDBinDist,
     .frequencyStartMHz = 0.0, .frequencyStepMHz = HfnlConfig::homBinMHz,
-    .rangeGateCount = HfnlConfig::homSpecDbin, .frequencyBinCount = HfnlConfig::homSpecFreq,
+    .frequencyBinCount = HfnlConfig::homSpecFreq,
 };
-inline constexpr DAQParams hfnlCdl{
+inline constexpr DAQParams<UniformRangeMapping<HfnlConfig::rangeStartM,
+    HfnlConfig::rangeStartM + HfnlConfig::cdlDBinDist * HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecDbin>> hfnlCdl{
     .wavelengthM = HfnlConfig::wavelengthM,
     .zeroWindMHz = HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz,
-    .rangeStartM = HfnlConfig::rangeStartM, .rangeStepM = HfnlConfig::cdlDBinDist,
     .frequencyStartMHz = 0.0, .frequencyStepMHz = HfnlConfig::cdlBinMHz,
-    .rangeGateCount = HfnlConfig::cdlSpecDbin, .frequencyBinCount = HfnlConfig::cdlSpecFreq,
+    .frequencyBinCount = HfnlConfig::cdlSpecFreq,
 };
 
 // 两路通道 HOM（下标 0）、CDL（下标 1）；工厂为每次尝试备齐两路 double，收包线程直接解码，
