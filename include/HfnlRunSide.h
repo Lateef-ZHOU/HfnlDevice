@@ -74,16 +74,16 @@ namespace HfnlConfig {
 
 // 两路规格：零多普勒在各自中心频点；频率轴与「下标 → 风速」映射分开。
 inline constexpr double HfnlMetersPerMHz = HfnlConfig::wavelengthM / 2.0 * 1e6;
-using HfnlHomRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>;
-using HfnlHomFrequency = UniformMapping<0.0, HfnlConfig::homBinMHz, HfnlConfig::homSpecFreq>;
-using HfnlHomWind = UniformMapping<-HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz * HfnlMetersPerMHz,
+using HfnlHomRange = LinearMapping<HfnlConfig::rangeStartM, HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>;
+using HfnlHomFrequency = LinearMapping<0.0, HfnlConfig::homBinMHz, HfnlConfig::homSpecFreq>;
+using HfnlHomWind = LinearMapping<-HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz * HfnlMetersPerMHz,
     HfnlConfig::homBinMHz * HfnlMetersPerMHz, HfnlConfig::homSpecFreq>;
-using HfnlCdlRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::cdlDBinDist, HfnlConfig::cdlSpecDbin>;
-using HfnlCdlFrequency = UniformMapping<0.0, HfnlConfig::cdlBinMHz, HfnlConfig::cdlSpecFreq>;
-using HfnlCdlWind = UniformMapping<-HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz * HfnlMetersPerMHz,
+using HfnlCdlRange = LinearMapping<HfnlConfig::rangeStartM, HfnlConfig::cdlDBinDist, HfnlConfig::cdlSpecDbin>;
+using HfnlCdlFrequency = LinearMapping<0.0, HfnlConfig::cdlBinMHz, HfnlConfig::cdlSpecFreq>;
+using HfnlCdlWind = LinearMapping<-HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz * HfnlMetersPerMHz,
     HfnlConfig::cdlBinMHz * HfnlMetersPerMHz, HfnlConfig::cdlSpecFreq>;
-using HfnlHomFrame = Spectrum<HfnlHomRange, HfnlHomFrequency>;
-using HfnlCdlFrame = Spectrum<HfnlCdlRange, HfnlCdlFrequency>;
+using HfnlHomFrame = Grid2D<HfnlHomRange, HfnlHomFrequency>;
+using HfnlCdlFrame = Grid2D<HfnlCdlRange, HfnlCdlFrequency>;
 using HfnlHomChannel = DAQChannel<HfnlHomRange, HfnlHomFrequency>;
 using HfnlCdlChannel = DAQChannel<HfnlCdlRange, HfnlCdlFrequency>;
 
