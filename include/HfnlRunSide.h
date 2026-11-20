@@ -84,8 +84,8 @@ using HfnlCdlWind = LinearMapping<-HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdl
     HfnlConfig::cdlBinMHz * HfnlMetersPerMHz, HfnlConfig::cdlSpecFreq>;
 using HfnlHomFrame = Grid2D<HfnlHomRange, HfnlHomFrequency>;
 using HfnlCdlFrame = Grid2D<HfnlCdlRange, HfnlCdlFrequency>;
-using HfnlHomChannel = DAQChannel<HfnlHomRange, HfnlHomFrequency>;
-using HfnlCdlChannel = DAQChannel<HfnlCdlRange, HfnlCdlFrequency>;
+using HfnlHomChannel = DAQChannel<HfnlHomRange, HfnlHomFrequency, HfnlHomWind>;
+using HfnlCdlChannel = DAQChannel<HfnlCdlRange, HfnlCdlFrequency, HfnlCdlWind>;
 
 // 两路通道 HOM（下标 0）、CDL（下标 1）；工厂为每次尝试备齐两路 double，收包线程直接解码，
 // 收齐末包即按族标准方法处理。
