@@ -72,17 +72,20 @@ namespace HfnlConfig {
     static constexpr int plt2dWsMax = 60;
 } // namespace HfnlConfig
 
-// 两路规格：零多普勒在各自中心频点。
+// 两路规格：零多普勒在各自中心频点；频率轴与「下标 → 风速」映射分开。
+inline constexpr double HfnlMetersPerMHz = RadialWindCalculation::metersPerSecondPerMHz(HfnlConfig::wavelengthM);
 using HfnlHomRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>;
-using HfnlHomDoppler = DopplerMapping<UniformMapping<0.0, HfnlConfig::homBinMHz, HfnlConfig::homSpecFreq>,
-    HfnlConfig::wavelengthM, HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz>;
+using HfnlHomFrequency = UniformMapping<0.0, HfnlConfig::homBinMHz, HfnlConfig::homSpecFreq>;
+using HfnlHomWind = UniformMapping<-HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz * HfnlMetersPerMHz,
+    HfnlConfig::homBinMHz * HfnlMetersPerMHz, HfnlConfig::homSpecFreq>;
 using HfnlCdlRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::cdlDBinDist, HfnlConfig::cdlSpecDbin>;
-using HfnlCdlDoppler = DopplerMapping<UniformMapping<0.0, HfnlConfig::cdlBinMHz, HfnlConfig::cdlSpecFreq>,
-    HfnlConfig::wavelengthM, HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz>;
-using HfnlHomFrame = Spectrum<HfnlHomRange, HfnlHomDoppler>;
-using HfnlCdlFrame = Spectrum<HfnlCdlRange, HfnlCdlDoppler>;
-using HfnlHomChannel = DAQChannel<HfnlHomRange, HfnlHomDoppler>;
-using HfnlCdlChannel = DAQChannel<HfnlCdlRange, HfnlCdlDoppler>;
+using HfnlCdlFrequency = UniformMapping<0.0, HfnlConfig::cdlBinMHz, HfnlConfig::cdlSpecFreq>;
+using HfnlCdlWind = UniformMapping<-HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz * HfnlMetersPerMHz,
+    HfnlConfig::cdlBinMHz * HfnlMetersPerMHz, HfnlConfig::cdlSpecFreq>;
+using HfnlHomFrame = Spectrum<HfnlHomRange, HfnlHomFrequency>;
+using HfnlCdlFrame = Spectrum<HfnlCdlRange, HfnlCdlFrequency>;
+using HfnlHomChannel = DAQChannel<HfnlHomRange, HfnlHomFrequency>;
+using HfnlCdlChannel = DAQChannel<HfnlCdlRange, HfnlCdlFrequency>;
 
 // 两路通道 HOM（下标 0）、CDL（下标 1）；工厂为每次尝试备齐两路 double，收包线程直接解码，
 // 收齐末包即按族标准方法处理。
@@ -155,8 +158,8 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         auto cdl = std::make_unique<HfnlCdlFrame>();
         for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
             (*cdl)[i] = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
-        return {HfnlHomChannel(std::move(hom), "HOM"),
-                HfnlCdlChannel(std::move(cdl), "CDL")};
+        return {HfnlHomChannel(std::move(hom), HfnlHomWind{}, "HOM"),
+                HfnlCdlChannel(std::move(cdl), HfnlCdlWind{}, "CDL")};
     }
 
     QByteArray raw_{FrameBytes, Qt::Uninitialized}; // 原样帧：HOM 元素后接 CDL 元素；解析后释放
