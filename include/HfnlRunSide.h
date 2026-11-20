@@ -68,8 +68,8 @@ namespace HfnlConfig {
     static constexpr qint64 plt3dValMax = Q_INT64_C(9999999999999);
     // 2D 风速 | CNR 的值轴量程：WS ±60 m/s、CNR ±25 dB 为物理范围（两通道同）。
     // 距离轴量程不设常量：它恒等于「门数 × 门距」，Wind2DPanel 自己推得出来。
-    static constexpr int plt2dWsMin = -60;
-    static constexpr int plt2dWsMax = 60;
+    static constexpr int plt2dWsMin = -90;
+    static constexpr int plt2dWsMax = 90;
 } // namespace HfnlConfig
 
 // 两路规格：零多普勒在各自中心频点；频率轴与「下标 → 风速」映射分开。
