@@ -73,26 +73,22 @@ namespace HfnlConfig {
 } // namespace HfnlConfig
 
 // 两路规格：零多普勒在各自中心频点。
-inline constexpr DAQParams<UniformMapping<HfnlConfig::rangeStartM,
-    HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>> hfnlHom{
-    .wavelengthM = HfnlConfig::wavelengthM,
-    .zeroWindMHz = HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz,
-    .frequencyStartMHz = 0.0, .frequencyStepMHz = HfnlConfig::homBinMHz,
-    .frequencyBinCount = HfnlConfig::homSpecFreq,
-};
-inline constexpr DAQParams<UniformMapping<HfnlConfig::rangeStartM,
-    HfnlConfig::cdlDBinDist, HfnlConfig::cdlSpecDbin>> hfnlCdl{
-    .wavelengthM = HfnlConfig::wavelengthM,
-    .zeroWindMHz = HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz,
-    .frequencyStartMHz = 0.0, .frequencyStepMHz = HfnlConfig::cdlBinMHz,
-    .frequencyBinCount = HfnlConfig::cdlSpecFreq,
-};
+using HfnlHomRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>;
+using HfnlHomDoppler = DopplerMapping<UniformMapping<0.0, HfnlConfig::homBinMHz, HfnlConfig::homSpecFreq>,
+    HfnlConfig::wavelengthM, HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz>;
+using HfnlCdlRange = UniformMapping<HfnlConfig::rangeStartM, HfnlConfig::cdlDBinDist, HfnlConfig::cdlSpecDbin>;
+using HfnlCdlDoppler = DopplerMapping<UniformMapping<0.0, HfnlConfig::cdlBinMHz, HfnlConfig::cdlSpecFreq>,
+    HfnlConfig::wavelengthM, HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz>;
+using HfnlHomFrame = Spectrum<HfnlHomRange, HfnlHomDoppler>;
+using HfnlCdlFrame = Spectrum<HfnlCdlRange, HfnlCdlDoppler>;
+using HfnlHomChannel = DAQChannel<HfnlHomRange, HfnlHomDoppler>;
+using HfnlCdlChannel = DAQChannel<HfnlCdlRange, HfnlCdlDoppler>;
 
 // 两路通道 HOM（下标 0）、CDL（下标 1）；工厂为每次尝试备齐两路 double，收包线程直接解码，
 // 收齐末包即按族标准方法处理。
 // 看门狗重试只读出生即定的参数，与收包写缓冲互不干涉。
 // 每次启动发送一份 HOM/CDL 数据后硬件停止发送；缺包使本次无法收齐，由看门狗重新发起采集。
-class HfnlCollector final : public TypedDAQCollector<DAQChannel<hfnlHom>, DAQChannel<hfnlCdl>>
+class HfnlCollector final : public TypedDAQCollector<HfnlHomChannel, HfnlCdlChannel>
 {
 public:
     // 一帧 = HOM 全部元素后接 CDL 全部元素，每个元素 8 字节大端。
@@ -148,7 +144,7 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
     {
         const char *const bytes = raw_.constData();
         const auto word = [bytes](const int i) { return qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte); };
-        auto hom = std::make_unique<Spectrum<hfnlHom>>();
+        auto hom = std::make_unique<HfnlHomFrame>();
         for (int i = 0; i < HfnlConfig::homSpecElement; ++i)
         {
             const quint64 w = word(i);
@@ -156,11 +152,11 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
             const qint64 im = static_cast<qint64>((w & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
             (*hom)[i] = static_cast<double>(re * re + im * im);
         }
-        auto cdl = std::make_unique<Spectrum<hfnlCdl>>();
+        auto cdl = std::make_unique<HfnlCdlFrame>();
         for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
             (*cdl)[i] = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
-        return {DAQChannel<hfnlHom>(std::move(hom), "HOM"),
-                DAQChannel<hfnlCdl>(std::move(cdl), "CDL")};
+        return {HfnlHomChannel(std::move(hom), "HOM"),
+                HfnlCdlChannel(std::move(cdl), "CDL")};
     }
 
     QByteArray raw_{FrameBytes, Qt::Uninitialized}; // 原样帧：HOM 元素后接 CDL 元素；解析后释放
