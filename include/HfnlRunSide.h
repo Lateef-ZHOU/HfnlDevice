@@ -74,14 +74,14 @@ namespace HfnlConfig {
 
 // 两路规格：零多普勒在各自中心频点。
 inline constexpr DAQParams<UniformRangeMapping<HfnlConfig::rangeStartM,
-    HfnlConfig::rangeStartM + HfnlConfig::homDBinDist * HfnlConfig::homSpecDbin, HfnlConfig::homSpecDbin>> hfnlHom{
+    HfnlConfig::homDBinDist, HfnlConfig::homSpecDbin>> hfnlHom{
     .wavelengthM = HfnlConfig::wavelengthM,
     .zeroWindMHz = HfnlConfig::homSpecFreq / 2 * HfnlConfig::homBinMHz,
     .frequencyStartMHz = 0.0, .frequencyStepMHz = HfnlConfig::homBinMHz,
     .frequencyBinCount = HfnlConfig::homSpecFreq,
 };
 inline constexpr DAQParams<UniformRangeMapping<HfnlConfig::rangeStartM,
-    HfnlConfig::rangeStartM + HfnlConfig::cdlDBinDist * HfnlConfig::cdlSpecDbin, HfnlConfig::cdlSpecDbin>> hfnlCdl{
+    HfnlConfig::cdlDBinDist, HfnlConfig::cdlSpecDbin>> hfnlCdl{
     .wavelengthM = HfnlConfig::wavelengthM,
     .zeroWindMHz = HfnlConfig::cdlSpecFreq / 2 * HfnlConfig::cdlBinMHz,
     .frequencyStartMHz = 0.0, .frequencyStepMHz = HfnlConfig::cdlBinMHz,
