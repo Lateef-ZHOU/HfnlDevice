@@ -148,18 +148,38 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
         const char *const bytes = raw_.constData();
         const auto word = [bytes](const int i) { return qFromBigEndian<quint64>(bytes + i * HfnlConfig::elementByte); };
         auto hom = std::make_unique<HfnlHomFrame>();
+        auto homDenoised = std::make_unique<HfnlHomFrame>();
+        std::array<double, HfnlConfig::homSpecFreq> homFloor{};
         for (int i = 0; i < HfnlConfig::homSpecElement; ++i)
         {
             const quint64 w = word(i);
             const qint64 re = static_cast<qint64>(((w >> 21) & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
             const qint64 im = static_cast<qint64>((w & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
-            (*hom)[i] = static_cast<double>(re * re + im * im);
+            const double value = static_cast<double>(re * re + im * im);
+            (*hom)[i] = value;
+            if (i < HfnlConfig::homSpecFreq)
+            {
+                homFloor[i] = value;
+                (*homDenoised)[i] = 0.0; // 本底门自身归零
+            }
+            else (*homDenoised)[i] = value - homFloor[i % HfnlConfig::homSpecFreq];
         }
         auto cdl = std::make_unique<HfnlCdlFrame>();
+        auto cdlDenoised = std::make_unique<HfnlCdlFrame>();
+        std::array<double, HfnlConfig::cdlSpecFreq> cdlFloor{};
         for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
-            (*cdl)[i] = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
-        return {HfnlHomChannel(std::move(hom), HfnlHomWind{}, "HOM"),
-                HfnlCdlChannel(std::move(cdl), HfnlCdlWind{}, "CDL")};
+        {
+            const double value = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
+            (*cdl)[i] = value;
+            if (i < HfnlConfig::cdlSpecFreq)
+            {
+                cdlFloor[i] = value;
+                (*cdlDenoised)[i] = 0.0;
+            }
+            else (*cdlDenoised)[i] = value - cdlFloor[i % HfnlConfig::cdlSpecFreq];
+        }
+        return {HfnlHomChannel(std::move(hom), std::move(homDenoised), HfnlHomWind{}, "HOM"),
+                HfnlCdlChannel(std::move(cdl), std::move(cdlDenoised), HfnlCdlWind{}, "CDL")};
     }
 
     QByteArray raw_{FrameBytes, Qt::Uninitialized}; // 原样帧：HOM 元素后接 CDL 元素；解析后释放

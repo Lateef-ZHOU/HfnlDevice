@@ -182,7 +182,7 @@ public:
     Q_INVOKABLE bool setData(const HfnlChannels &channels, double low, double high)
     {
         if (!channels) return false;
-        return setSpectrum(std::get<0>(*channels).spectrum, low, high);
+        return setSpectrum(std::get<0>(*channels).displaySpectrum(), low, high);
     }
 };
 
@@ -224,7 +224,7 @@ public:
     Q_INVOKABLE bool setData(const HfnlChannels &channels, double low, double high)
     {
         if (!channels) return false;
-        return setSpectrum(std::get<1>(*channels).spectrum, low, high);
+        return setSpectrum(std::get<1>(*channels).displaySpectrum(), low, high);
     }
 };
 
