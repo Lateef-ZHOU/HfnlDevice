@@ -30,11 +30,8 @@ bool verifyDecodedArrays()
     if (!collector.feed(bytes.subspan(1024), {})) return false;
     const auto &hom = *std::get<0>(collector.channels()).spectrum;
     const auto &cdl = *std::get<1>(collector.channels()).spectrum;
-    // 本底 = 第一门：首行归零，后续门减去同频点本底。
-    return hom.size() == HfnlConfig::homSpecElement && hom[0] == 0
-        && hom[HfnlConfig::homSpecFreq] == -25 && hom[hom.size()-1] == 0
-        && cdl.size() == HfnlConfig::cdlSpecElement && cdl[0] == 0
-        && cdl[HfnlConfig::cdlSpecFreq] == -12345 && cdl[cdl.size()-1] == 67890;
+    return hom.size() == HfnlConfig::homSpecElement && hom[0] == 25 && hom[hom.size()-1] == 0
+        && cdl.size() == HfnlConfig::cdlSpecElement && cdl[0] == 12345 && cdl[cdl.size()-1] == 67890;
 }
 template<class Channels, std::size_t... I>
 Channels sampleChannels(std::index_sequence<I...>)

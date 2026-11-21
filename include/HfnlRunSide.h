@@ -143,7 +143,6 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
     }
 
     // HOM 元素为 21 位有符号 I/Q，功率 = I² + Q²（先整数求和再精确转 double）；CDL 元素低 42 位即功率。
-    // 本底 = 每个通道第一个距离门（镜面之前），逐点扣除。
     Frame decode() const
     {
         const char *const bytes = raw_.constData();
@@ -154,19 +153,11 @@ private: // NVI 可变点：派生只实现、不调用（公开的是基类那�
             const quint64 w = word(i);
             const qint64 re = static_cast<qint64>(((w >> 21) & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
             const qint64 im = static_cast<qint64>((w & 0x1FFFFFULL) ^ 0x100000ULL) - 0x100000;
-            double value = static_cast<double>(re * re + im * im);
-            if (i >= HfnlConfig::homSpecFreq) value -= (*hom)[i % HfnlConfig::homSpecFreq];
-            (*hom)[i] = value;
+            (*hom)[i] = static_cast<double>(re * re + im * im);
         }
-        for (int c = 0; c < HfnlConfig::homSpecFreq; ++c) (*hom)[c] = 0.0;
         auto cdl = std::make_unique<HfnlCdlFrame>();
         for (int i = 0; i < HfnlConfig::cdlSpecElement; ++i)
-        {
-            double value = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
-            if (i >= HfnlConfig::cdlSpecFreq) value -= (*cdl)[i % HfnlConfig::cdlSpecFreq];
-            (*cdl)[i] = value;
-        }
-        for (int c = 0; c < HfnlConfig::cdlSpecFreq; ++c) (*cdl)[c] = 0.0;
+            (*cdl)[i] = static_cast<double>(word(HfnlConfig::homSpecElement + i) & 0x3FFFFFFFFFFULL);
         return {HfnlHomChannel(std::move(hom), HfnlHomWind{}, "HOM"),
                 HfnlCdlChannel(std::move(cdl), HfnlCdlWind{}, "CDL")};
     }
